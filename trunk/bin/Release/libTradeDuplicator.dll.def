@@ -1,6 +1,0 @@
-EXPORTS
-    ClearOrderTable = ClearOrderTable@0 @1
-    FinalizeOrderTable = FinalizeOrderTable@0 @2
-    GetOrderCount = GetOrderCount@8 @3
-    GetOrdersDetails = GetOrdersDetails@36 @4
-    StoreNewOrder = StoreNewOrder@48 @5

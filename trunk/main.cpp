@@ -194,6 +194,43 @@ extern "C"
         return retValue;
     }
 
+    MT4_EXPFUNC BOOL	__stdcall	GetOrderCountNoSymbol(int orderCount[])
+    {
+        BOOL retValue = 0;
+
+        InitStorage(tmpDir());
+
+
+        try
+        {
+            std::string databasePath = "";
+
+            databasePath = tmpDir();
+            databasePath += "\\tradedup.db";
+            sd::sqlite database(databasePath);   // open the db with the table already created
+            sd::sql selquery(database);
+            std::string squery = "select count(*) from activeTrades";
+
+
+            selquery << squery;
+
+            while (selquery.step())
+            {
+                selquery >>   orderCount[0];
+                //MessageBox(GetActiveWindow(),L"D",L"Request",MB_OK);
+            }
+            //MessageBox(GetActiveWindow(),L"D",L"Request",MB_OK);
+            retValue = 1;
+
+
+        }
+        catch (sd::db_error& err)
+        {
+
+        }
+
+        return retValue;
+    }
 
 
     MT4_EXPFUNC BOOL	__stdcall	GetOrdersDetails(const int orderCount, const char* orderSymbol, int orderTicket[], int op[],
@@ -224,6 +261,60 @@ extern "C"
             std::string squery = "select orderid , ordertype, orderopenprice, orderstoploss, ordertakeprofit, orderlots from activeTrades where ordersymbol = '";
             squery += orderSymbol;
             squery += "'";
+
+            selquery << squery;
+
+            // extract the matching rows
+
+            while (selquery.step())
+            {
+                selquery >>  orderTicket[rwCnt] >> op[rwCnt] >> orderOpenPrice[rwCnt] >> orderStoploss[rwCnt] >> orderTakeProfit[rwCnt] >> orderLots[rwCnt];
+                retValue = 1;
+                rwCnt++;
+
+            }
+
+
+        }
+        catch (sd::db_error& err)
+        {
+            // do something with error
+            //std::string errText = err.what_;
+
+            retValue = 0;
+        }
+
+
+        returnedOrders[0] = rwCnt;
+        return retValue;
+    }
+
+    MT4_EXPFUNC BOOL	__stdcall	GetOrdersDetailsNoSymbol(const int orderCount, int orderTicket[], int op[],
+            double orderOpenPrice[], double orderStoploss[],
+            double orderTakeProfit[], double orderLots[], int returnedOrders[])
+    {
+
+        BOOL retValue = 0;
+
+
+        InitStorage(tmpDir());
+
+        std::string sOrderSymbol;
+        std::string sOrderDatetime;
+        int rwCnt = 0;
+
+        try
+        {
+            std::string databasePath = "";
+            databasePath = tmpDir();
+            databasePath += "\\tradedup.db";
+
+
+            sd::sqlite database(databasePath);   // open the db with the table already created
+            sd::sql selquery(database);
+
+
+            std::string squery = "select orderid , ordertype, orderopenprice, orderstoploss, ordertakeprofit, orderlots from activeTrades ";
 
             selquery << squery;
 

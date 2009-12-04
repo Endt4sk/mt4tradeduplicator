@@ -144,3 +144,61 @@
 	<unicode/ubrk.h>
 	<unicode/utf16.h>
 
+1259118882 source:c:\projects\mt4tradeduplicator\sdsqlite.cpp
+	"sdsqlite.h"
+
+1259118882 c:\projects\mt4tradeduplicator\sdsqlite.h
+	<string>
+	<istream>
+	<ostream>
+	<assert.h>
+	<malloc.h>
+	<stdlib.h>
+	<cstring>
+	<cstdlib>
+	"sqlite3.h"
+
+1259118882 c:\projects\mt4tradeduplicator\sqlite3.h
+	<stdarg.h>
+
+1259118882 source:c:\projects\mt4tradeduplicator\sqlite3.c
+	"config.h"
+	<stdint.h>
+	<inttypes.h>
+	<tcl.h>
+	<stdarg.h>
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<assert.h>
+	<stddef.h>
+	<windows.h>
+	<os2safe.h>
+	<os2.h>
+	<uconv.h>
+	<ctype.h>
+	<time.h>
+	<pthread.h>
+	<math.h>
+	<sys/types.h>
+	<sys/stat.h>
+	<fcntl.h>
+	<unistd.h>
+	<sys/time.h>
+	<errno.h>
+	<sys/ioctl.h>
+	<semaphore.h>
+	<limits.h>
+	<sys/file.h>
+	<sys/param.h>
+	<sys/mount.h>
+	<dlfcn.h>
+	<winbase.h>
+	<sys/cygwin.h>
+	<unicode/utypes.h>
+	<unicode/uregex.h>
+	<unicode/ustring.h>
+	<unicode/ucol.h>
+	<unicode/ubrk.h>
+	<unicode/utf16.h>
+
