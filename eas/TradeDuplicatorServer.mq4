@@ -91,7 +91,7 @@ void PopulateOrders()
         if (OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
         {
             
-            StoreNewOrder(OrderTicket(), StringSubstr(Symbol(), 0, 6), OrderType(),
+            StoreNewOrder(OrderTicket(), StringSubstr(OrderSymbol(), 0, 6), OrderType(),
                    OrderOpenPrice(), OrderStopLoss(),
                    OrderTakeProfit(), OrderLots(),
                    TimeToStr(OrderOpenTime()));
