@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                                 TradeMonitor.mq4 |
+//|                                 TradeDuplicatorServerMonitor.mq4 |
 //|                     Copyright © 2009, OpenThinking Software, LLC |
 //|  Licensed under the Apache License, Version 2.0 (the "License")  |
 //|  you may not use this file except in compliance with the License.|
