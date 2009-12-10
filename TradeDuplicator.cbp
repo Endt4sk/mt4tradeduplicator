@@ -38,6 +38,7 @@
 					<Add option="-O2" />
 					<Add option="-Wall" />
 					<Add option="-DBUILD_DLL" />
+					<Add option="-DSQLITE_THREADSAFE" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
@@ -53,8 +54,6 @@
 		<Linker>
 			<Add option="-lwinmm -Wl,--kill-at -lwldap32" />
 		</Linker>
-		<Unit filename="convert.h" />
-		<Unit filename="log.h" />
 		<Unit filename="main.cpp" />
 		<Unit filename="sdsqlite.cpp" />
 		<Unit filename="sdsqlite.h" />

@@ -202,3 +202,9 @@
 	<unicode/ubrk.h>
 	<unicode/utf16.h>
 
+1259895810 source:c:\projects\mt4tradeduplicator\main.cpp
+	<windows.h>
+	"sqlliteutils.h"
+	<string>
+	<time.h>
+

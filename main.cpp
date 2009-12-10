@@ -25,9 +25,9 @@
 
 #include <windows.h>
 
-#include "sqlliteutils.h"
 #include <string>
 #include <time.h>
+#include "sdsqlite.h"
 
 enum TradeOperation
 {
