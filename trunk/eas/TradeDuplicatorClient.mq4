@@ -229,11 +229,13 @@ void processTrades()
                         if (( OrderMagicNumber() == g_StoredOrderTicket[i] ))
                         {
                             if (OrderType() == OP_BUY || OrderType() == OP_SELL)
-                                BetterOrderModify(OrderSymbol(), OrderTicket(), OrderOpenPrice(), StoredOrderStopLoss[i],
+                                BetterOrderModify(OrderSymbol(), OrderTicket(), OrderType(), OrderOpenPrice(), StoredOrderStopLoss[i],
                                             StoredOrdeTakeProfit[i], 0,Blue);
                             else
-                                BetterOrderModify(OrderSymbol(), OrderTicket(), StoredOrderOpenPrice[i], StoredOrderStopLoss[i],
+                                BetterOrderModify(OrderSymbol(), OrderTicket(), OrderType(), StoredOrderOpenPrice[i], StoredOrderStopLoss[i],
                                             StoredOrdeTakeProfit[i], 0,Blue);
+                                            
+
                         }
                 }
  
