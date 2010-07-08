@@ -15,7 +15,7 @@
 //|  the License.                                                    |
 //|                              http://www.openthinkingsoftware.com |
 //+------------------------------------------------------------------+
-#property copyright "Copyright © 2009 OpenThinking Software, LLC"
+#property copyright "Copyright © 2010 OpenThinking Software, LLC"
 #property link      "http://www.openthinkingsoftware.com"
 
 #import "TradeDuplicator.dll"
@@ -23,7 +23,7 @@
 bool GetOrdersDetails(int orderCount, string orderSymbol, int& orderTicket[],  int& op[],
                       double& orderOpenPrice[], double& orderStoploss[],
                       double& orderTakeProfit[], double& orderLots[],
-                      int returnedOrders[]);
+                      string orderComment[], int returnedOrders[]);
 bool ClearOrderTable();
 bool GetOrderCount(int& orderCount[], string orderSymbol);
 bool FinalizeOrderTable();
@@ -40,6 +40,7 @@ extern bool CleanStrays = true;
 
 int    g_StoredOrderTicket[];             //    OrderTicket()
 string g_StoredOrderSymbol[];             //    OrderSymbol()
+string g_StoredOrderComment[];             //    OrderSymbol()
 int    g_StoredOrderType[];             //      OrderType()
 double g_StoredOrderOpenPrice[];             //     OrderOpenPrice()
 double g_StoredOrderLots[];             //     OrderLots()
@@ -48,6 +49,7 @@ double g_StoredOrdeTakeProfit[];             //     OrderTakeProfit()
 
 int    g_LocalOrderTicket[];             //    OrderTicket()
 string g_LocalOrderSymbol[];             //    OrderSymbol()
+string g_LocalOrderComments[];             //    OrderSymbol()
 int    g_LocalOrderType[];             //      OrderType()
 double g_LocalOrderOpenPrice[];             //     OrderOpenPrice()
 double g_LocalOrderLots[];             //     OrderLots()
@@ -140,6 +142,7 @@ void processTrades()
     double StoredOrderLots[];
     string StoredOrderSymbol[];
     string StoredOrderDateTime[];
+    string StoredOrderComment[];
 
     double closeprice;
     double newlots;
@@ -149,7 +152,7 @@ void processTrades()
 
     //First populate new array
     RetrieveOrders( StoredOrderTicket, StoredOrderType, StoredOrderOpenPrice,
-                    StoredOrderLots, StoredOrderStopLoss, StoredOrdeTakeProfit);
+                    StoredOrderLots, StoredOrderStopLoss, StoredOrdeTakeProfit, StoredOrderComment);
 
     int    k=ArraySize(StoredOrderTicket);
 
@@ -361,7 +364,7 @@ void ResetOrderArray()
 {
  
     RetrieveOrders( g_StoredOrderTicket, g_StoredOrderType, g_StoredOrderOpenPrice,
-                    g_StoredOrderLots, g_StoredOrderStopLoss, g_StoredOrdeTakeProfit);
+                    g_StoredOrderLots, g_StoredOrderStopLoss, g_StoredOrdeTakeProfit, g_StoredOrderComment);
  
 }
  
@@ -433,7 +436,8 @@ void CloseStrayLocalOrders ()
  
 }
 void RetrieveOrders( int& aStoredOrderTicket[], int& aStoredOrderType[], double& aStoredOrderOpenPrice[],
-                     double& aStoredOrderLots[], double& aStoredOrderStopLoss[], double& aStoredOrdeTakeProfit[])
+                     double& aStoredOrderLots[], double& aStoredOrderStopLoss[], double& aStoredOrdeTakeProfit[],
+                     string& aStoredOrderComment[])
 {
     bool sameCount = false;
  
@@ -451,19 +455,27 @@ void RetrieveOrders( int& aStoredOrderTicket[], int& aStoredOrderType[], double&
             ArrayResize(aStoredOrderStopLoss, k);
             ArrayResize(aStoredOrdeTakeProfit, k);
             ArrayResize(aStoredOrderLots, k);
- 
+            ArrayResize(aStoredOrderComment, k);
+            
             ArrayInitialize(aStoredOrderOpenPrice, MathRandRange(1, 255));
             ArrayInitialize(aStoredOrderType, MathRandRange(1, 255));
             ArrayInitialize(aStoredOrderTicket, MathRandRange(1, 255));
             ArrayInitialize(aStoredOrderStopLoss, MathRandRange(1, 255));
             ArrayInitialize(aStoredOrdeTakeProfit, MathRandRange(1, 255));
             ArrayInitialize(aStoredOrderLots, MathRandRange(1, 255));
- 
+         
+            //Init comments
+            
+            for (int i2=0; i2<k; i2++)
+            {
+               aStoredOrderComment[k] = "1111111111111111111111111111111111111111111111111";
+            }
+            
             while(goodResponse == false)
             {
                 goodResponse = GetOrdersDetails(k, StringSubstr(Symbol(), 0, 6), aStoredOrderTicket,  aStoredOrderType,
                                                 aStoredOrderOpenPrice, aStoredOrderStopLoss,
-                                                aStoredOrdeTakeProfit, aStoredOrderLots,
+                                                aStoredOrdeTakeProfit, aStoredOrderLots, aStoredOrderComment,
                                                 returnedOrderCount);
             }
  

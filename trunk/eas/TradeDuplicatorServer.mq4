@@ -1,6 +1,6 @@
 //+------------------------------------------------------------------+
 //|                                 TradeDuplicatorServerMonitor.mq4 |
-//|                     Copyright © 2009, OpenThinking Software, LLC |
+//|                     Copyright © 2010, OpenThinking Software, LLC |
 //|  Licensed under the Apache License, Version 2.0 (the "License")  |
 //|  you may not use this file except in compliance with the License.|
 //|  You may obtain a copy of the License at                         |
@@ -21,16 +21,13 @@
 
 #import "TradeDuplicator.dll"
 
-bool GetOrderDetails(int orderCount, int& orderTicket[], string orderSymbol, int& op[],
-                     double& orderOpenPrice[], double& orderStoploss[],
-                     double& orderTakeProfit[], double& orderLots[],
-                     string orderOpenTime);
+
 bool ClearOrderTable();
 bool GetOrderCount(int& orderCount[]);
 bool StoreNewOrder(int orderTicket, string orderSymbol, int op,
                    double orderOpenPrice, double orderStoploss,
                    double orderTakeProfit, double orderLots,
-                   string orderOpenTime);
+                   string orderOpenTime, string orderComment);
 bool FinalizeOrderTable();
 #import
 
@@ -94,7 +91,7 @@ void PopulateOrders()
             StoreNewOrder(OrderTicket(), StringSubstr(OrderSymbol(), 0, 6), OrderType(),
                    OrderOpenPrice(), OrderStopLoss(),
                    OrderTakeProfit(), OrderLots(),
-                   TimeToStr(OrderOpenTime()));
+                   TimeToStr(OrderOpenTime()), OrderComment());
         }
     }
     
