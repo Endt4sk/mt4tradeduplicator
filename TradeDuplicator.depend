@@ -144,10 +144,10 @@
 	<unicode/ubrk.h>
 	<unicode/utf16.h>
 
-1259118882 source:c:\projects\mt4tradeduplicator\sdsqlite.cpp
+1278569661 source:c:\projects\mt4tradeduplicator\sdsqlite.cpp
 	"sdsqlite.h"
 
-1259118882 c:\projects\mt4tradeduplicator\sdsqlite.h
+1278569661 c:\projects\mt4tradeduplicator\sdsqlite.h
 	<string>
 	<istream>
 	<ostream>
@@ -158,10 +158,10 @@
 	<cstdlib>
 	"sqlite3.h"
 
-1259118882 c:\projects\mt4tradeduplicator\sqlite3.h
+1278569661 c:\projects\mt4tradeduplicator\sqlite3.h
 	<stdarg.h>
 
-1259118882 source:c:\projects\mt4tradeduplicator\sqlite3.c
+1278569661 source:c:\projects\mt4tradeduplicator\sqlite3.c
 	"config.h"
 	<stdint.h>
 	<inttypes.h>
@@ -202,9 +202,10 @@
 	<unicode/ubrk.h>
 	<unicode/utf16.h>
 
-1259895810 source:c:\projects\mt4tradeduplicator\main.cpp
+1278555791 source:c:\projects\mt4tradeduplicator\main.cpp
 	<windows.h>
-	"sqlliteutils.h"
 	<string>
 	<time.h>
+	<stdio.h>
+	"sdsqlite.h"
 
