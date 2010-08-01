@@ -46,6 +46,7 @@ double g_StoredOrderOpenPrice[];             //     OrderOpenPrice()
 double g_StoredOrderLots[];             //     OrderLots()
 double g_StoredOrderStopLoss[];             //     OrderStopLoss()
 double g_StoredOrdeTakeProfit[];             //     OrderTakeProfit()
+datetime g_StoredOrderOpenTime[];
 
 int    g_LocalOrderTicket[];             //    OrderTicket()
 string g_LocalOrderSymbol[];             //    OrderSymbol()
@@ -55,6 +56,7 @@ double g_LocalOrderOpenPrice[];             //     OrderOpenPrice()
 double g_LocalOrderLots[];             //     OrderLots()
 double g_LocalOrderStopLoss[];             //     OrderStopLoss()
 double g_LocalOrdeTakeProfit[];             //     OrderTakeProfit()
+datetime g_LocalOrderOpenTime[];
 
 double dXPoint = 1;
 int Slippage=10;
@@ -75,6 +77,8 @@ void init()
 
     }
     ResetOrderArray();
+    LoadOriginalOrderTickets();
+    
     if (CleanStrays == true)
         CloseStrayLocalOrders();
         
@@ -141,7 +145,7 @@ void processTrades()
     double StoredOrdeTakeProfit[];             //     OrderTakeProfit()
     double StoredOrderLots[];
     string StoredOrderSymbol[];
-    string StoredOrderDateTime[];
+    datetime StoredOrderOpenTime[];
     string StoredOrderComment[];
 
     double closeprice;
@@ -151,6 +155,9 @@ void processTrades()
     bool okayToProcess = true;
 
     //First populate new array
+    
+    //TODO - need to add order open Time
+    
     RetrieveOrders( StoredOrderTicket, StoredOrderType, StoredOrderOpenPrice,
                     StoredOrderLots, StoredOrderStopLoss, StoredOrdeTakeProfit, StoredOrderComment);
 
@@ -243,37 +250,15 @@ void processTrades()
                 }
  
             }
-            //Check to see if partial Close
-            if(StoredOrderLots[i] < g_StoredOrderLots[in])
-            {
-                int partialCloseOrder = GetOrderByMagic(g_StoredOrderTicket[i]);
-                if (partialCloseOrder > 0)
-                {
-                    if (OrderSelect(partialCloseOrder, SELECT_BY_TICKET, MODE_TRADES))
- 
-                        if (( OrderMagicNumber() == StoredOrderTicket[i] ))
-                        {
-                            if ((OrderType() == OP_BUY))
-                            {
-                                BetterCloseBuy (OrderTicket(), g_StoredOrderLots[in] - StoredOrderLots[i], OrderSymbol());
-                            }
-                            else
-                            {
-                                BetterCloseSell (OrderTicket(), g_StoredOrderLots[in] - StoredOrderLots[i], OrderSymbol());
-                            }
- 
- 
-                        }
-                }//for
- 
-            }
- 
- 
+            
         }
     }
  
     k=ArraySize(g_StoredOrderTicket);
- 
+    
+    int closeOrderTicket = 0;
+    double closeOrderLots = 0.0;
+    
     for (i=0; i<k; i++)
     {
         if (ArraySearchInt(StoredOrderTicket, g_StoredOrderTicket[i])<0)
@@ -285,21 +270,51 @@ void processTrades()
  
                 {
  
+                    int tradeidx = ArraySearchTimeDoubleString(StoredOrderOpenTime, StoredOrderOpenPrice, StoredOrderSymbol,
+                                                             g_StoredOrderOpenTime[i], g_StoredOrderOpenPrice[i], g_StoredOrderSymbol[i]);
+                     if ((tradeidx != -1 && StoredOrderLots[tradeidx] <= g_StoredOrderLots[i]) || // partially closed, still open
+                      (GetOriginalOrderTicket(g_StoredOrderTicket[i]) != -1)) {  // final partial close, no remaining open trades
+                    double closed_lots;
+                    int orig_order_ticket;
+
+                    if (tradeidx != -1)  // still open, take difference of lots sizes
+                      closed_lots = g_StoredOrderLots[i] - StoredOrderLots[tradeidx];
+                    else
+                      closed_lots = g_StoredOrderLots[i];
+
+                    if (GetOriginalOrderTicket(g_StoredOrderTicket[i]) < 0)  // haven't stored orig yet, meaning this is the orig trade
+                      orig_order_ticket = g_StoredOrderTicket[i];
+                    else { // already stored original, meaning this wasn't the original trade
+                      orig_order_ticket = GetOriginalOrderTicket(g_StoredOrderTicket[i]);
+                      DeleteOriginalOrderTicket(g_StoredOrderTicket[i]);  // old trade is gone, no longer need to link it
+                    }
+
+                    // link the new trade with the order id of the original trade, unless this is the final partial close
+                    if (tradeidx != -1)
+                      SetOriginalOrderTicket(StoredOrderTicket[tradeidx], orig_order_ticket);
+                    closeOrderTicket = orig_order_ticket;
+                    closeOrderLots = closed_lots;
+                  } else { // full close
+                    closeOrderTicket = g_StoredOrderTicket[i];
+                    closeOrderLots = g_StoredOrderLots[i];
+                  }
                     if ((OrderType() == OP_BUY) ||
                             (OrderType() == OP_BUYLIMIT) ||
                             (OrderType() == OP_BUYSTOP))
                     {
+                    
+                    
                         if (OrderType() == OP_BUY)
-                           BetterCloseBuy (OrderTicket(), OrderLots(), OrderSymbol());
+                           BetterCloseBuy (closeOrderTicket, closeOrderLots, OrderSymbol());
                         else
-                           OrderDelete(OrderTicket());
+                           OrderDelete(closeOrderTicket);
                     }
                     else
                     {
                         if (OrderType() == OP_SELL)
-                           BetterCloseSell (OrderTicket(), OrderLots(), OrderSymbol());
+                           BetterCloseSell (closeOrderTicket, closeOrderLots, OrderSymbol());
                         else
-                           OrderDelete(OrderTicket());
+                           OrderDelete(closeOrderTicket);
                     }
                  
                 }
@@ -336,24 +351,21 @@ void processTrades()
         ArrayCopy(g_StoredOrdeTakeProfit, StoredOrdeTakeProfit);
         ArrayCopy(g_StoredOrderLots, StoredOrderLots);
     }
+    
+    DumpOriginalOrderTickets();
  
 }
  
-int ArraySearchInt(int& m[], int e)
-{
- 
- 
-    if (ArraySize(m) == 0)
-        return (-1);
-    
-    int iSizeM = ArraySize(m);
-    for (int i=0; i<iSizeM; i++)
-    {
-        if (m[i]==e) return(i);
-    }
- 
-    return(-1);
- 
+int ArraySearchDouble(double a[], double e) { for (int i = 0; i < ArraySize(a); i++)  if (a[i] == e) return(i); return(-1); }
+int ArraySearchTime(datetime a[], datetime e) { for (int i = 0; i < ArraySize(a); i++)  if (a[i] == e) return(i); return(-1); }
+int ArraySearchString(string a[], string e) { for (int i = 0; i < ArraySize(a); i++)  if (a[i] == e) return(i); return(-1); }
+int ArraySearchInt(int a[], int e) { for (int i = 0; i < ArraySize(a); i++)  if (a[i] == e) return(i); return(-1); }
+
+int ArraySearchTimeDoubleString(datetime ta[], double da[], string sa[], datetime t, double d, string s) {
+  for (int i = 0; i < ArraySize(ta); i++)
+    if (ta[i] == t && da[i] == d && sa[i] == s) return(i);
+
+  return(-1);
 }
  
  
@@ -476,11 +488,8 @@ void RetrieveOrders( int& aStoredOrderTicket[], int& aStoredOrderType[], double&
                 goodResponse = GetOrdersDetails(k, StringSubstr(Symbol(), 0, 6), aStoredOrderTicket,  aStoredOrderType,
                                                 aStoredOrderOpenPrice, aStoredOrderStopLoss,
                                                 aStoredOrdeTakeProfit, aStoredOrderLots, aStoredOrderComment,
-                                                returnedOrderCount);
+                                                returnedOrderCount); //TODO - orderopentime
             }
- 
- 
- 
  
  
             if (returnedOrderCount[0] == ArraySize(aStoredOrdeTakeProfit))
@@ -1181,5 +1190,71 @@ bool BetterCloseSell (int ticket, double lots, string symbol)
     return(ret);
 }
 
- 
+ int OriginalOrderTicketsKeys[];
+int OriginalOrderTicketsValues[];
+int OriginalOrderTicketsSize = 0;
+
+int GetOriginalOrderTicket(int key) {
+  for (int i = 0; i < OriginalOrderTicketsSize; i++)
+    if (OriginalOrderTicketsKeys[i] == key)
+      return(OriginalOrderTicketsValues[i]);
+  return(-1);
+}
+
+void SetOriginalOrderTicket(int key, int value) {
+  for (int i = 0; i < OriginalOrderTicketsSize; i++) {
+    if (OriginalOrderTicketsKeys[i] == -1) {
+      OriginalOrderTicketsKeys[i] = key;
+      OriginalOrderTicketsValues[i] = value;
+      return;
+    }
+  }
+
+  // no free space, make some
+  OriginalOrderTicketsSize += 1;
+  ArrayResize(OriginalOrderTicketsKeys, OriginalOrderTicketsSize);
+  ArrayResize(OriginalOrderTicketsValues, OriginalOrderTicketsSize);
+  OriginalOrderTicketsKeys[OriginalOrderTicketsSize-1] = key;
+  OriginalOrderTicketsValues[OriginalOrderTicketsSize-1] = value;
+}
+
+int DeleteOriginalOrderTicket(int key) {
+  for (int i = 0; i < OriginalOrderTicketsSize; i++)
+    if (OriginalOrderTicketsKeys[i] == key)
+      OriginalOrderTicketsKeys[i] = -1;
+}
+
+void DumpOriginalOrderTickets() {
+   int f = FileOpen("original_order_tickets_" + AccountNumber() + ".csv", FILE_WRITE|FILE_CSV);
+   if (f < 0) {
+      Print("ERROR PERSISTING ORIGINAL ORDER TICKETS TO FILE!  PARTIAL CLOSES MAY NOT WORK CORRECTLY");
+      return;
+   }
+
+   FileWrite(f, OriginalOrderTicketsSize);
+   for (int i = 0; i < OriginalOrderTicketsSize; i++)
+      FileWrite(f, OriginalOrderTicketsKeys[i], OriginalOrderTicketsValues[i]);
+
+   FileClose(f);
+}
+
+void LoadOriginalOrderTickets() {
+   int f = FileOpen("original_order_tickets_" + AccountNumber() + ".csv", FILE_READ|FILE_CSV);
+   if (f < 0) {
+      Print("ERROR LOADING ORIGINAL ORDER TICKETS FILE!  PARTIAL CLOSES MAY NOT WORK CORRECTLY");
+      Print("DISREGARD THIS ERROR IF THIS IS THE FIRST TIME RUNNING THIS EXPERT ADVISOR");
+      return;
+   }
+   
+   OriginalOrderTicketsSize = StrToInteger(FileReadString(f));
+   ArrayResize(OriginalOrderTicketsKeys, OriginalOrderTicketsSize);
+   ArrayResize(OriginalOrderTicketsValues, OriginalOrderTicketsSize);
+   for (int i = 0; i < OriginalOrderTicketsSize; i++) {
+      OriginalOrderTicketsKeys[i] = StrToInteger(FileReadString(f));
+      OriginalOrderTicketsValues[i] = StrToInteger(FileReadString(f));
+   }
+   
+   FileClose(f);
+}
+
  
