@@ -120,7 +120,7 @@ extern "C"
     MT4_EXPFUNC BOOL __stdcall	  StoreNewOrder(const int orderTicket, const char *orderSymbol, TradeOperation op,
             const double orderOpenPrice, const double orderStoploss,
             const double orderTakeProfit, const double orderLots,
-            const char *orderOpenTime, const char *orderComment)
+            const char *orderOpenTime,  const int acctNumber)
 
     {
 
@@ -140,13 +140,13 @@ extern "C"
 
             sd::sqlite database(databasePath);   // open the db with the table already created
             sd::sql insert_query(database);   // build an sql query
-            insert_query << "insert into tempTrades (orderid , ordersymbol, ordertype, orderopenprice, orderstoploss, ordertakeprofit, orderlots, orderopentime, ordercomment) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            insert_query << "insert into tempTrades (orderid , ordersymbol, ordertype, orderopenprice, orderstoploss, ordertakeprofit, orderlots, orderopentime,  accountnumber) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             //database << "begin transaction";// create a transaction for speed
 
             // insert data (sdsqlite will auto-detect data type and execute query)
             insert_query << orderTicket << orderSymbol << op << orderOpenPrice << orderStoploss
-            << orderTakeProfit << orderLots << orderOpenTime << orderComment;
+            << orderTakeProfit << orderLots << orderOpenTime <<  acctNumber;
 
             //insert_query.step();
 
@@ -167,7 +167,7 @@ extern "C"
     }
 
 
-    MT4_EXPFUNC BOOL	__stdcall	GetOrderCount(int orderCount[], const char* orderSymbol)
+    MT4_EXPFUNC BOOL	__stdcall	GetOrderCount(int orderCount[], const char* orderSymbol, const int acctNumber)
     {
         BOOL retValue = 0;
 
@@ -186,6 +186,12 @@ extern "C"
             squery += orderSymbol;
             squery += "'";
 
+            if (acctNumber != 0)
+            {
+                squery += " and accountnumber = ";
+                squery += acctNumber;
+            }
+
             selquery << squery;
 
             while (selquery.step())
@@ -206,7 +212,7 @@ extern "C"
         return retValue;
     }
 
-    MT4_EXPFUNC BOOL	__stdcall	GetOrderCountNoSymbol(int orderCount[])
+    MT4_EXPFUNC BOOL	__stdcall	GetOrderCountNoSymbol(int orderCount[], const int acctNumber)
     {
         BOOL retValue = 0;
 
@@ -223,6 +229,11 @@ extern "C"
             sd::sql selquery(database);
             std::string squery = "select count(*) from activeTrades";
 
+            if (acctNumber != 0)
+            {
+                squery += " and accountnumber = ";
+                squery += acctNumber;
+            }
 
             selquery << squery;
 
@@ -245,9 +256,9 @@ extern "C"
     }
 
 
-    MT4_EXPFUNC BOOL	__stdcall	GetOrdersDetails(const int orderCount, const char* orderSymbol, int orderTicket[], int op[],
+    MT4_EXPFUNC BOOL	__stdcall	GetOrdersDetails(const int orderCount, const char* orderSymbol, const int acctNumber, int orderTicket[], int op[],
             double orderOpenPrice[], double orderStoploss[],
-            double orderTakeProfit[], double orderLots[], MqlStr *orderComment, int returnedOrders[])
+            double orderTakeProfit[], double orderLots[], int returnedOrders[])
     {
 
         BOOL retValue = 0;
@@ -270,9 +281,15 @@ extern "C"
             sd::sql selquery(database);
 
 
-            std::string squery = "select orderid , ordertype, orderopenprice, orderstoploss, ordertakeprofit, orderlots, ordercomment  from activeTrades where ordersymbol = '";
+            std::string squery = "select orderid , ordertype, orderopenprice, orderstoploss, ordertakeprofit, orderlots,   from activeTrades where ordersymbol = '";
             squery += orderSymbol;
             squery += "'";
+
+            if (acctNumber != 0)
+            {
+                squery += " and accountnumber = ";
+                squery += acctNumber;
+            }
 
             selquery << squery;
 
@@ -281,10 +298,8 @@ extern "C"
             while (selquery.step())
             {
                 std::string comString;
-                selquery >>  orderTicket[rwCnt] >> op[rwCnt] >> orderOpenPrice[rwCnt] >> orderStoploss[rwCnt] >> orderTakeProfit[rwCnt] >> orderLots[rwCnt] >> comString;
-                int lenString = strlen(comString.c_str());
-                strcpy(orderComment[rwCnt].string, comString.c_str());
-                orderComment[rwCnt].len = lenString;
+                selquery >>  orderTicket[rwCnt] >> op[rwCnt] >> orderOpenPrice[rwCnt] >> orderStoploss[rwCnt] >> orderTakeProfit[rwCnt] >> orderLots[rwCnt];
+
 
                 retValue = 1;
                 rwCnt++;
@@ -306,7 +321,7 @@ extern "C"
         return retValue;
     }
 
-    MT4_EXPFUNC BOOL	__stdcall	GetOrdersDetailsNoSymbol(const int orderCount, int orderTicket[], int op[],
+    MT4_EXPFUNC BOOL	__stdcall	GetOrdersDetailsNoSymbol(const int orderCount, const int acctNumber, int orderTicket[], int op[],
             double orderOpenPrice[], double orderStoploss[],
             double orderTakeProfit[], double orderLots[], int returnedOrders[])
     {
@@ -332,6 +347,12 @@ extern "C"
 
 
             std::string squery = "select orderid , ordertype, orderopenprice, orderstoploss, ordertakeprofit, orderlots from activeTrades ";
+
+            if (acctNumber != 0)
+            {
+                squery += " and accountnumber = ";
+                squery += acctNumber;
+            }
 
             selquery << squery;
 
