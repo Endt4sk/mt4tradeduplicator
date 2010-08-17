@@ -23,7 +23,7 @@
 bool GetOrdersDetails(int orderCount, string orderSymbol, int& orderTicket[],  int& op[],
                       double& orderOpenPrice[], double& orderStoploss[],
                       double& orderTakeProfit[], double& orderLots[],
-                      string orderComment[], int returnedOrders[]);
+                       int returnedOrders[]);
 bool ClearOrderTable();
 bool GetOrderCount(int& orderCount[], string orderSymbol);
 bool FinalizeOrderTable();
@@ -476,18 +476,13 @@ void RetrieveOrders( int& aStoredOrderTicket[], int& aStoredOrderType[], double&
             ArrayInitialize(aStoredOrdeTakeProfit, MathRandRange(1, 255));
             ArrayInitialize(aStoredOrderLots, MathRandRange(1, 255));
          
-            //Init comments
-            
-            for (int i2=0; i2<k; i2++)
-            {
-               aStoredOrderComment[k] = "1111111111111111111111111111111111111111111111111";
-            }
+
             
             while(goodResponse == false)
             {
                 goodResponse = GetOrdersDetails(k, StringSubstr(Symbol(), 0, 6), aStoredOrderTicket,  aStoredOrderType,
                                                 aStoredOrderOpenPrice, aStoredOrderStopLoss,
-                                                aStoredOrdeTakeProfit, aStoredOrderLots, aStoredOrderComment,
+                                                aStoredOrdeTakeProfit, aStoredOrderLots, 
                                                 returnedOrderCount); //TODO - orderopentime
             }
  
