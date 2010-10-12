@@ -38,7 +38,7 @@ extern int PipsAwayLimit = 20;
 extern double LotMultiplier = 1;
 extern int PipsDeviation = 20;
 extern bool CleanStrays = true;
-
+extern int AccountFilter = 0;
 int    g_StoredOrderTicket[];             //    OrderTicket()
 string g_StoredOrderSymbol[];             //    OrderSymbol()
 string g_StoredOrderComment[];             //    OrderSymbol()
@@ -459,7 +459,30 @@ void SendCloseOrder(int orderTicket, double orderLots, double origLots, string o
             }
 
 }
+
+void SendDeleteOrder(int orderTicket, string orderSymbol)
+{
+            int closeOrder = GetOrderByMagic(orderTicket);
+            if (closeOrder > 0)
+            {
+                if (OrderSelect(closeOrder, SELECT_BY_TICKET, MODE_TRADES))
  
+                {
+                    
+                   
+                    OrderDelete(OrderTicket());
+                   
+                 
+                }
+            }
+            else
+            {
+ 
+                Print("Can't find an order with a number of ", orderTicket);
+ 
+            }
+
+}
 int databaseOrderCount()
 {
     int    ordercount[1] = {0};
@@ -562,13 +585,12 @@ void RetrieveOrders( int& aStoredOrderTicket[], int& aStoredOrderType[], double&
             
             while(goodResponse == false)
             {
-                goodResponse = GetOrdersDetails(k, StringSubstr(Symbol(), 0, 6), aStoredOrderTicket,  aStoredOrderType,
+                goodResponse = GetOrdersDetails(k, StringSubstr(Symbol(), 0, 6), AccountFilter, aStoredOrderTicket,  aStoredOrderType,
                                                 aStoredOrderOpenPrice, aStoredOrderStopLoss,
                                                 aStoredOrdeTakeProfit, aStoredOrderLots, aStoredOrderComment,
                                                 returnedOrderCount);
             }
- 
- 
+
  
  
  
