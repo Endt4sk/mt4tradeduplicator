@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include "sdsqlite.h"
 
+
 enum TradeOperation
 {
     OP_BUY = 0,
@@ -68,8 +69,8 @@ void __stdcall	        InitStorage(const char* path)
         databasePath = std::string(path);
         databasePath += "\\tradedup.db";
         sd::sqlite database(databasePath);
-        database << "create table if not exists tempTrades (orderid int, ordersymbol text, ordercomment text, ordertype int, orderopenprice double, orderstoploss double, ordertakeprofit double, orderlots double, orderopentime text )";
-        database << "create table if not exists activeTrades (orderid int, ordersymbol text, ordercomment text, ordertype int, orderopenprice double, orderstoploss double, ordertakeprofit double, orderlots double, orderopentime text )";
+        database << "create table if not exists tempTrades (orderid int, ordersymbol text, ordercomment text, ordertype int, orderopenprice double, orderstoploss double, ordertakeprofit double, orderlots double, orderopentime text , ordercomment text)";
+        database << "create table if not exists activeTrades (orderid int, ordersymbol text, ordercomment text, ordertype int, orderopenprice double, orderstoploss double, ordertakeprofit double, orderlots double, orderopentime text , ordercomment text)";
 
     }
     catch (sd::db_error& err)
@@ -120,7 +121,7 @@ extern "C"
     MT4_EXPFUNC BOOL __stdcall	  StoreNewOrder(const int orderTicket, const char *orderSymbol, TradeOperation op,
             const double orderOpenPrice, const double orderStoploss,
             const double orderTakeProfit, const double orderLots,
-            const char *orderOpenTime,  const int acctNumber)
+            const char *orderOpenTime,  const int acctNumber, const char *orderComment)
 
     {
 
@@ -140,7 +141,7 @@ extern "C"
 
             sd::sqlite database(databasePath);   // open the db with the table already created
             sd::sql insert_query(database);   // build an sql query
-            insert_query << "insert into tempTrades (orderid , ordersymbol, ordertype, orderopenprice, orderstoploss, ordertakeprofit, orderlots, orderopentime,  accountnumber) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            insert_query << "insert into tempTrades (orderid , ordersymbol, ordertype, orderopenprice, orderstoploss, ordertakeprofit, orderlots, orderopentime,  accountnumber, ordercomment) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             //database << "begin transaction";// create a transaction for speed
 
@@ -258,7 +259,7 @@ extern "C"
 
     MT4_EXPFUNC BOOL	__stdcall	GetOrdersDetails(const int orderCount, const char* orderSymbol, const int acctNumber, int orderTicket[], int op[],
             double orderOpenPrice[], double orderStoploss[],
-            double orderTakeProfit[], double orderLots[], int returnedOrders[])
+            double orderTakeProfit[], double orderLots[], MqlStr * ordercomments,  int returnedOrders[])
     {
 
         BOOL retValue = 0;
@@ -281,7 +282,7 @@ extern "C"
             sd::sql selquery(database);
 
 
-            std::string squery = "select orderid , ordertype, orderopenprice, orderstoploss, ordertakeprofit, orderlots,   from activeTrades where ordersymbol = '";
+            std::string squery = "select orderid , ordertype, orderopenprice, orderstoploss, ordertakeprofit, orderlots, ordercomments  from activeTrades where ordersymbol = '";
             squery += orderSymbol;
             squery += "'";
 
@@ -298,8 +299,13 @@ extern "C"
             while (selquery.step())
             {
                 std::string comString;
-                selquery >>  orderTicket[rwCnt] >> op[rwCnt] >> orderOpenPrice[rwCnt] >> orderStoploss[rwCnt] >> orderTakeProfit[rwCnt] >> orderLots[rwCnt];
+                selquery >>  orderTicket[rwCnt] >> op[rwCnt] >> orderOpenPrice[rwCnt] >> orderStoploss[rwCnt] >> orderTakeProfit[rwCnt] >> orderLots[rwCnt] >> comString;
+                int szString1 = lstrlenA(comString.c_str());
+                char * string1 = (char*)malloc(szString1 + 1);
+                lstrcpyA(string1, comString.c_str());
 
+                ordercomments[rwCnt].string = string1;
+                ordercomments[rwCnt].len = szString1;
 
                 retValue = 1;
                 rwCnt++;
@@ -323,7 +329,7 @@ extern "C"
 
     MT4_EXPFUNC BOOL	__stdcall	GetOrdersDetailsNoSymbol(const int orderCount, const int acctNumber, int orderTicket[], int op[],
             double orderOpenPrice[], double orderStoploss[],
-            double orderTakeProfit[], double orderLots[], int returnedOrders[])
+            double orderTakeProfit[], double orderLots[], MqlStr * ordercomments, int returnedOrders[])
     {
 
         BOOL retValue = 0;
@@ -346,7 +352,7 @@ extern "C"
             sd::sql selquery(database);
 
 
-            std::string squery = "select orderid , ordertype, orderopenprice, orderstoploss, ordertakeprofit, orderlots from activeTrades ";
+            std::string squery = "select orderid , ordertype, orderopenprice, orderstoploss, ordertakeprofit, orderlots, ordercomments from activeTrades ";
 
             if (acctNumber != 0)
             {
@@ -360,7 +366,15 @@ extern "C"
 
             while (selquery.step())
             {
-                selquery >>  orderTicket[rwCnt] >> op[rwCnt] >> orderOpenPrice[rwCnt] >> orderStoploss[rwCnt] >> orderTakeProfit[rwCnt] >> orderLots[rwCnt];
+                std::string comString;
+                selquery >>  orderTicket[rwCnt] >> op[rwCnt] >> orderOpenPrice[rwCnt] >> orderStoploss[rwCnt] >> orderTakeProfit[rwCnt] >> orderLots[rwCnt]>> comString;
+                int szString1 = lstrlenA(comString.c_str());
+                char * string1 = (char*)malloc(szString1 + 1);
+                lstrcpyA(string1, comString.c_str());
+
+                ordercomments[rwCnt].string = string1;
+                ordercomments[rwCnt].len = szString1;
+
                 retValue = 1;
                 rwCnt++;
 

@@ -20,7 +20,8 @@
 
 #import "TradeDuplicator.dll"
 
-bool GetOrdersDetails(int orderCount, string orderSymbol, int& orderTicket[],  int& op[],
+
+bool GetOrdersDetails(int orderCount, string orderSymbol, int acctNumber, int& orderTicket[],  int& op[],
                       double& orderOpenPrice[], double& orderStoploss[],
                       double& orderTakeProfit[], double& orderLots[],
                       string orderComment[], int returnedOrders[]);
