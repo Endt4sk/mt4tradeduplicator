@@ -23,7 +23,7 @@
 bool GetOrdersDetails(int orderCount, string orderSymbol, int& orderTicket[],  int& op[],
                       double& orderOpenPrice[], double& orderStoploss[],
                       double& orderTakeProfit[], double& orderLots[],
-                       int returnedOrders[]);
+                      int returnedOrders[]);
 bool ClearOrderTable();
 bool GetOrderCount(int& orderCount[], string orderSymbol);
 bool FinalizeOrderTable();
@@ -60,7 +60,7 @@ datetime g_LocalOrderOpenTime[];
 
 double dXPoint = 1;
 int Slippage=10;
-
+double myPoint = 0; 
 //+----------------------------------------------------------------------------+
 //|  Custom indicator initialization function                                  |
 //+----------------------------------------------------------------------------+
@@ -78,10 +78,10 @@ void init()
     }
     ResetOrderArray();
     LoadOriginalOrderTickets();
-    
+
     if (CleanStrays == true)
         CloseStrayLocalOrders();
-        
+
     if (Digits==3||Digits==5)
     {
         dXPoint=10;
@@ -155,9 +155,9 @@ void processTrades()
     bool okayToProcess = true;
 
     //First populate new array
-    
+
     //TODO - need to add order open Time
-    
+
     RetrieveOrders( StoredOrderTicket, StoredOrderType, StoredOrderOpenPrice,
                     StoredOrderLots, StoredOrderStopLoss, StoredOrdeTakeProfit, StoredOrderComment);
 
@@ -176,7 +176,7 @@ void processTrades()
 
             double pnow = 0.0;
             newlots = StoredOrderLots[i] * LotMultiplier;
- 
+
             if (newlots < MarketInfo(Symbol(),MODE_MINLOT))
             {
                 newlots = MarketInfo(Symbol(),MODE_MINLOT);
@@ -185,8 +185,8 @@ void processTrades()
             {
                 newlots = MarketInfo(Symbol(),MODE_MAXLOT);
             }
- 
- 
+
+
             if (StoredOrderType[i] == OP_BUY)
             {
                 pnow = NormalizeDouble(MarketInfo(Symbol(), MODE_ASK), MarketInfo(Symbol(), MODE_DIGITS)); // we are buying at Ask
@@ -199,38 +199,38 @@ void processTrades()
             {
                 pnow = NormalizeDouble(StoredOrderOpenPrice[i], MarketInfo(Symbol(), MODE_DIGITS));
             }
- 
- 
+
+
             newCmd = StoredOrderType[i];
             newPrice = StoredOrderOpenPrice[i];
- 
- 
+
+
             if ((PipsDeviated(pnow, StoredOrderOpenPrice[i]) <= PipsDeviation)  && okayToProcess == true)
             {
- 
- 
+
+
                 if (newCmd == OP_BUY || newCmd == OP_SELL)
                     BetterOrderSend2Step(Symbol(), newCmd, newlots, pnow,
-                                   Slippage, StoredOrderStopLoss[i], StoredOrdeTakeProfit[i],
-                                   "TradeDuplicator", StoredOrderTicket[i], 0, Blue);
+                                         Slippage, StoredOrderStopLoss[i], StoredOrdeTakeProfit[i],
+                                         "TradeDuplicator", StoredOrderTicket[i], 0, Blue);
                 else
                 {
                     BetterOrderSend2Step(Symbol(), newCmd, newlots, newPrice,
-                                   Slippage, StoredOrderStopLoss[i], StoredOrdeTakeProfit[i],
-                                   "TradeDuplicator", StoredOrderTicket[i], 0, Blue);
+                                         Slippage, StoredOrderStopLoss[i], StoredOrdeTakeProfit[i],
+                                         "TradeDuplicator", StoredOrderTicket[i], 0, Blue);
                 }
             }
- 
+
         }
         else
         {
- 
+
             // Check to see if altered order
             if ((MathAbs(StoredOrderOpenPrice[i]-g_StoredOrderOpenPrice[in])>=p)
                     ||  (MathAbs(StoredOrderStopLoss[i]-g_StoredOrderStopLoss[in])>=p)
                     ||  (MathAbs(StoredOrdeTakeProfit[i]-g_StoredOrdeTakeProfit[in])>=p))
             {
- 
+
                 //Send modified order
                 int modifyOrder = GetOrderByMagic(g_StoredOrderTicket[i]);
                 if (modifyOrder > 0)
@@ -240,25 +240,25 @@ void processTrades()
                         {
                             if (OrderType() == OP_BUY || OrderType() == OP_SELL)
                                 BetterOrderModify(OrderSymbol(), OrderTicket(), OrderType(), OrderOpenPrice(), StoredOrderStopLoss[i],
-                                            StoredOrdeTakeProfit[i], 0,Blue);
+                                                  StoredOrdeTakeProfit[i], 0,Blue);
                             else
                                 BetterOrderModify(OrderSymbol(), OrderTicket(), OrderType(), StoredOrderOpenPrice[i], StoredOrderStopLoss[i],
-                                            StoredOrdeTakeProfit[i], 0,Blue);
-                                            
+                                                  StoredOrdeTakeProfit[i], 0,Blue);
+
 
                         }
                 }
- 
+
             }
-            
+
         }
     }
- 
+
     k=ArraySize(g_StoredOrderTicket);
-    
+
     int closeOrderTicket = 0;
     double closeOrderLots = 0.0;
-    
+
     for (i=0; i<k; i++)
     {
         if (ArraySearchInt(StoredOrderTicket, g_StoredOrderTicket[i])<0)
@@ -267,71 +267,75 @@ void processTrades()
             if (closeOrder > 0)
             {
                 if (OrderSelect(closeOrder, SELECT_BY_TICKET, MODE_TRADES))
- 
+
                 {
- 
+
                     int tradeidx = ArraySearchTimeDoubleString(StoredOrderOpenTime, StoredOrderOpenPrice, StoredOrderSymbol,
-                                                             g_StoredOrderOpenTime[i], g_StoredOrderOpenPrice[i], g_StoredOrderSymbol[i]);
-                     if ((tradeidx != -1 && StoredOrderLots[tradeidx] <= g_StoredOrderLots[i]) || // partially closed, still open
-                      (GetOriginalOrderTicket(g_StoredOrderTicket[i]) != -1)) {  // final partial close, no remaining open trades
-                    double closed_lots;
-                    int orig_order_ticket;
+                                   g_StoredOrderOpenTime[i], g_StoredOrderOpenPrice[i], g_StoredOrderSymbol[i]);
+                    if ((tradeidx != -1 && StoredOrderLots[tradeidx] <= g_StoredOrderLots[i]) || // partially closed, still open
+                            (GetOriginalOrderTicket(g_StoredOrderTicket[i]) != -1))    // final partial close, no remaining open trades
+                    {
+                        double closed_lots;
+                        int orig_order_ticket;
 
-                    if (tradeidx != -1)  // still open, take difference of lots sizes
-                      closed_lots = g_StoredOrderLots[i] - StoredOrderLots[tradeidx];
-                    else
-                      closed_lots = g_StoredOrderLots[i];
+                        if (tradeidx != -1)  // still open, take difference of lots sizes
+                            closed_lots = g_StoredOrderLots[i] - StoredOrderLots[tradeidx];
+                        else
+                            closed_lots = g_StoredOrderLots[i];
 
-                    if (GetOriginalOrderTicket(g_StoredOrderTicket[i]) < 0)  // haven't stored orig yet, meaning this is the orig trade
-                      orig_order_ticket = g_StoredOrderTicket[i];
-                    else { // already stored original, meaning this wasn't the original trade
-                      orig_order_ticket = GetOriginalOrderTicket(g_StoredOrderTicket[i]);
-                      DeleteOriginalOrderTicket(g_StoredOrderTicket[i]);  // old trade is gone, no longer need to link it
+                        if (GetOriginalOrderTicket(g_StoredOrderTicket[i]) < 0)  // haven't stored orig yet, meaning this is the orig trade
+                            orig_order_ticket = g_StoredOrderTicket[i];
+                        else   // already stored original, meaning this wasn't the original trade
+                        {
+                            orig_order_ticket = GetOriginalOrderTicket(g_StoredOrderTicket[i]);
+                            DeleteOriginalOrderTicket(g_StoredOrderTicket[i]);  // old trade is gone, no longer need to link it
+                        }
+
+                        // link the new trade with the order id of the original trade, unless this is the final partial close
+                        if (tradeidx != -1)
+                            SetOriginalOrderTicket(StoredOrderTicket[tradeidx], orig_order_ticket);
+                        closeOrderTicket = orig_order_ticket;
+                        closeOrderLots = closed_lots;
                     }
-
-                    // link the new trade with the order id of the original trade, unless this is the final partial close
-                    if (tradeidx != -1)
-                      SetOriginalOrderTicket(StoredOrderTicket[tradeidx], orig_order_ticket);
-                    closeOrderTicket = orig_order_ticket;
-                    closeOrderLots = closed_lots;
-                  } else { // full close
-                    closeOrderTicket = g_StoredOrderTicket[i];
-                    closeOrderLots = g_StoredOrderLots[i];
-                  }
+                    else     // full close
+                    {
+                        closeOrderTicket = g_StoredOrderTicket[i];
+                        closeOrderLots = g_StoredOrderLots[i];
+                    }
                     if ((OrderType() == OP_BUY) ||
                             (OrderType() == OP_BUYLIMIT) ||
                             (OrderType() == OP_BUYSTOP))
                     {
-                    
-                    
+
+
                         if (OrderType() == OP_BUY)
-                           BetterCloseBuy (closeOrderTicket, closeOrderLots, OrderSymbol());
+                            BetterCloseBuy (closeOrderTicket, closeOrderLots, OrderSymbol());
                         else
-                           OrderDelete(closeOrderTicket);
+                            OrderDelete(closeOrderTicket);
                     }
                     else
                     {
                         if (OrderType() == OP_SELL)
-                           BetterCloseSell (closeOrderTicket, closeOrderLots, OrderSymbol());
+                            BetterCloseSell (closeOrderTicket, closeOrderLots, OrderSymbol());
                         else
-                           OrderDelete(closeOrderTicket);
+                            OrderDelete(closeOrderTicket);
                     }
-                 
+
                 }
             }
             else
             {
- 
+
                 Print("Can't find an order with a number of ", g_StoredOrderTicket[i]);
- 
+
             }
             //
- 
- 
- 
+
+
+
         }
     }
- 
+
     k = ArraySize(StoredOrderTicket);
     // Copy saved array for next loop
     ArrayResize(g_StoredOrderTicket, k);
@@ -341,7 +345,7 @@ void processTrades()
     ArrayResize(g_StoredOrdeTakeProfit, k);
     ArrayResize(g_StoredOrderSymbol, k);
     ArrayResize(g_StoredOrderLots, k);
- 
+
     if (k > 0)
     {
         ArrayCopy(g_StoredOrderTicket, StoredOrderTicket);
@@ -351,38 +355,55 @@ void processTrades()
         ArrayCopy(g_StoredOrdeTakeProfit, StoredOrdeTakeProfit);
         ArrayCopy(g_StoredOrderLots, StoredOrderLots);
     }
-    
+
     DumpOriginalOrderTickets();
- 
-}
- 
-int ArraySearchDouble(double a[], double e) { for (int i = 0; i < ArraySize(a); i++)  if (a[i] == e) return(i); return(-1); }
-int ArraySearchTime(datetime a[], datetime e) { for (int i = 0; i < ArraySize(a); i++)  if (a[i] == e) return(i); return(-1); }
-int ArraySearchString(string a[], string e) { for (int i = 0; i < ArraySize(a); i++)  if (a[i] == e) return(i); return(-1); }
-int ArraySearchInt(int a[], int e) { for (int i = 0; i < ArraySize(a); i++)  if (a[i] == e) return(i); return(-1); }
 
-int ArraySearchTimeDoubleString(datetime ta[], double da[], string sa[], datetime t, double d, string s) {
-  for (int i = 0; i < ArraySize(ta); i++)
-    if (ta[i] == t && da[i] == d && sa[i] == s) return(i);
-
-  return(-1);
 }
- 
- 
+
+int ArraySearchDouble(double a[], double e)
+{
+    for (int i = 0; i < ArraySize(a); i++)  if (a[i] == e) return(i);
+    return(-1);
+}
+int ArraySearchTime(datetime a[], datetime e)
+{
+    for (int i = 0; i < ArraySize(a); i++)  if (a[i] == e) return(i);
+    return(-1);
+}
+int ArraySearchString(string a[], string e)
+{
+    for (int i = 0; i < ArraySize(a); i++)  if (a[i] == e) return(i);
+    return(-1);
+}
+int ArraySearchInt(int a[], int e)
+{
+    for (int i = 0; i < ArraySize(a); i++)  if (a[i] == e) return(i);
+    return(-1);
+}
+
+int ArraySearchTimeDoubleString(datetime ta[], double da[], string sa[], datetime t, double d, string s)
+{
+    for (int i = 0; i < ArraySize(ta); i++)
+        if (ta[i] == t && da[i] == d && sa[i] == s) return(i);
+
+    return(-1);
+}
+
+
 //+----------------------------------------------------------------------------+
 //|  Clearing up the memory for orders                                         |
 //+----------------------------------------------------------------------------+
 void ResetOrderArray()
 {
- 
+
     RetrieveOrders( g_StoredOrderTicket, g_StoredOrderType, g_StoredOrderOpenPrice,
                     g_StoredOrderLots, g_StoredOrderStopLoss, g_StoredOrdeTakeProfit, g_StoredOrderComment);
- 
+
 }
- 
- 
- 
- 
+
+
+
+
 int databaseOrderCount()
 {
     int    ordercount[1] = {0};
@@ -390,73 +411,80 @@ int databaseOrderCount()
     while (goodCallGetOrderCount == 0)
     {
         goodCallGetOrderCount =  GetOrderCount(ordercount, StringSubstr(Symbol(), 0, 6));
- 
+
     }
- 
+
     return (ordercount[0]);
 }
- 
- 
- 
+
+
+
 double MathRandRange(double x, double y)
 {
     //MathSrand(TimeLocal());
     return(x+MathMod(MathRand(),MathAbs(x-y)));
 }
- 
+
 void CloseStrayLocalOrders ()
 {
- 
+
     //First - populate magic number array
     int k = OrdersTotal();
     double closeprice;
     int LocalOrderTickets[];
- 
- 
+
+
     ArrayResize(LocalOrderTickets, k);
- 
-    for (int i=0; i<k; i++)
+
+    for (int i=k - 1; i>=0; i--)
     {
         if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) continue;
         if (ArraySearchInt(g_StoredOrderTicket, OrderMagicNumber())<0)
+
         {
-            if ((OrderType() == OP_BUY) ||
-                    (OrderType() == OP_BUYLIMIT) ||
-                    (OrderType() == OP_BUYSTOP))
+
+            if (OrderType() == OP_BUY)
+
             {
-                closeprice = NormalizeDouble(MarketInfo(Symbol(),MODE_BID),MarketInfo(Symbol(),MODE_DIGITS));
+
+                BetterCloseBuy(OrderTicket(), OrderLots(), OrderSymbol());
+
             }
+
+            else if (OrderType() == OP_SELL)
+
+            {
+
+                BetterCloseSell(OrderTicket(), OrderLots(), OrderSymbol());
+
+
+
+            }
+
             else
+
             {
-                closeprice = NormalizeDouble(MarketInfo(Symbol(),MODE_ASK),MarketInfo(Symbol(),MODE_DIGITS));
-            }
-            if ((OrderType() == OP_BUY) || (OrderType() == OP_SELL))
-            {
-                OrderClose(OrderTicket(), OrderLots(), closeprice,
-                           Slippage, Red );
- 
-            }
-            else
-            {
+
                 OrderDelete(OrderTicket());
- 
+
             }
+
         }
     }
- 
- 
- 
+
+
+
 }
 void RetrieveOrders( int& aStoredOrderTicket[], int& aStoredOrderType[], double& aStoredOrderOpenPrice[],
                      double& aStoredOrderLots[], double& aStoredOrderStopLoss[], double& aStoredOrdeTakeProfit[],
                      string& aStoredOrderComment[])
 {
     bool sameCount = false;
- 
+
     while (sameCount == false)
     {
         int i, k=databaseOrderCount();
- 
+
         if (k > 0)
         {
             bool goodResponse = false;
@@ -468,25 +496,25 @@ void RetrieveOrders( int& aStoredOrderTicket[], int& aStoredOrderType[], double&
             ArrayResize(aStoredOrdeTakeProfit, k);
             ArrayResize(aStoredOrderLots, k);
             ArrayResize(aStoredOrderComment, k);
-            
+
             ArrayInitialize(aStoredOrderOpenPrice, MathRandRange(1, 255));
             ArrayInitialize(aStoredOrderType, MathRandRange(1, 255));
             ArrayInitialize(aStoredOrderTicket, MathRandRange(1, 255));
             ArrayInitialize(aStoredOrderStopLoss, MathRandRange(1, 255));
             ArrayInitialize(aStoredOrdeTakeProfit, MathRandRange(1, 255));
             ArrayInitialize(aStoredOrderLots, MathRandRange(1, 255));
-         
 
-            
+
+
             while(goodResponse == false)
             {
                 goodResponse = GetOrdersDetails(k, StringSubstr(Symbol(), 0, 6), aStoredOrderTicket,  aStoredOrderType,
                                                 aStoredOrderOpenPrice, aStoredOrderStopLoss,
-                                                aStoredOrdeTakeProfit, aStoredOrderLots, 
+                                                aStoredOrdeTakeProfit, aStoredOrderLots,
                                                 returnedOrderCount); //TODO - orderopentime
             }
- 
- 
+
+
             if (returnedOrderCount[0] == ArraySize(aStoredOrdeTakeProfit))
                 sameCount = true;
         }
@@ -501,29 +529,29 @@ void RetrieveOrders( int& aStoredOrderTicket[], int& aStoredOrderType[], double&
             ArrayResize(aStoredOrderLots, 0);
         }
     }
- 
- 
+
+
 }
- 
- 
+
+
 int PipsDeviated(double price1, double price2)
 {
- 
+
     int pipsSpread = MathAbs(price1 - price2) / MarketInfo(Symbol(), MODE_DIGITS);
     return (pipsSpread);
 }
- 
+
 int GetOrderByMagic(int magic)
 {
     int cnt = 0, checkSum=0;
- 
+
     bool okayProcess = false;
     bool badSelect = false;
- 
+
     while (okayProcess == false)
     {
         cnt = OrdersTotal();
- 
+
         for (int i=0; i<cnt; i++)
         {
             if (OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
@@ -535,27 +563,28 @@ int GetOrderByMagic(int magic)
             {
                 badSelect = true;
             }
- 
+
         }
- 
+
         if (cnt == OrdersTotal() && checkSum == cnt && badSelect == false)
             okayProcess = true;
         else
             Sleep(1000);
     }
- 
+
     return (-1);
 }
- 
 
- 
+
+
 int BetterOrderSend2Step(string symbol, int cmd, double volume, double price,
                          int slippage, double stoploss, double takeprofit,
                          string comment, int magic, datetime expiration = 0,
                          color arrow_color = CLR_NONE)
 {
- 
- 
+
+    double pnow = 0.0;
+    int slippagenow = slippage;
     // ------------------------------------------------
     // Check basic conditions see if trade is possible.
     // ------------------------------------------------
@@ -563,58 +592,58 @@ int BetterOrderSend2Step(string symbol, int cmd, double volume, double price,
     {
         return(-1);
     }
- 
+
     if (IsStopped())
     {
         return(-1);
     }
- 
+
     int cnt = 0;
- 
+
     while (!IsTradeAllowed() && cnt < 10)
     {
         SleepRandomTime(4.0, 25.0);
         cnt++;
     }
- 
+
     if (!IsTradeAllowed())
     {
         return(-1);
     }
- 
+
     // Normalize all price / stoploss / takeprofit to the proper # of digits.
     int digits = MarketInfo(symbol, MODE_DIGITS);
- 
+
     //First - ensure price is right
- 
+
     if (cmd == OP_BUY)
     {
         RefreshRates();
         price = MarketInfo(symbol,MODE_ASK);
     }
- 
+
     if (cmd == OP_SELL)
     {
         RefreshRates();
         price = MarketInfo(symbol,MODE_BID);
     }
- 
+
     if (digits > 0)
     {
         price = NormalizeDouble(price, digits);
         stoploss = NormalizeDouble(stoploss, digits);
         takeprofit = NormalizeDouble(takeprofit, digits);
     }
- 
- 
+
+
     int err = GetLastError(); // clear the global variable.
     err = 0;
- 
+
     bool exit_loop = false;
- 
+
     // limit/stop order.
     int ticket = -1;
- 
+
     if ((cmd == OP_BUYSTOP) || (cmd == OP_SELLSTOP) || (cmd == OP_BUYLIMIT) || (cmd == OP_SELLLIMIT))
     {
         cnt = 0;
@@ -630,13 +659,13 @@ int BetterOrderSend2Step(string symbol, int cmd, double volume, double price,
             {
                 cnt++;
             }
- 
+
             switch (err)
             {
             case ERR_NO_ERROR:
                 exit_loop = true;
                 break;
- 
+
                 // retryable errors
             case ERR_SERVER_BUSY:
             case ERR_NO_CONNECTION:
@@ -646,56 +675,56 @@ int BetterOrderSend2Step(string symbol, int cmd, double volume, double price,
             case ERR_TRADE_CONTEXT_BUSY:
                 cnt++;
                 break;
- 
+
             case ERR_PRICE_CHANGED:
             case ERR_REQUOTE:
                 RefreshRates();
                 continue;	// we can apparently retry immediately according to MT docs.
- 
+
             case ERR_INVALID_STOPS:
                 double servers_min_stop = MarketInfo(symbol, MODE_STOPLEVEL) * MarketInfo(symbol, MODE_POINT);
                 if (cmd == OP_BUYSTOP || cmd == OP_BUYLIMIT)
                 {
                     if (MathAbs(Ask - price) <= servers_min_stop)
                     {
- 
+
                         if (price < Ask)
                             price = Ask - servers_min_stop;
                         else if (price > Ask)
                             price = Ask + servers_min_stop;
                         else
                             Print("Non-retryable error - Price is Set same as Ask, cannot continue.");
- 
+
                     }
- 
+
                 }
                 else if (cmd == OP_SELLSTOP || cmd == OP_SELLLIMIT)
                 {
                     // If we are too close to put in a limit/stop order so go to market.
                     if (MathAbs(Bid - price) <= servers_min_stop)
                     {
- 
+
                         if (price < Bid)
                             price = Bid - servers_min_stop;
                         else if (price > Bid)
                             price = Bid + servers_min_stop;
                         else
                             Print("Non-retryable error - Price is Set same as Bid, cannot continue.");
- 
+
                     }
                 }
                 break;
- 
+
             default:
                 // an apparently serious error.
                 exit_loop = true;
                 break;
- 
+
             }  // end switch
- 
+
             if (cnt > 10)
                 exit_loop = true;
- 
+
             if (exit_loop)
             {
                 if (err != ERR_NO_ERROR)
@@ -707,7 +736,7 @@ int BetterOrderSend2Step(string symbol, int cmd, double volume, double price,
                     Print("Retry attempts maxed at " + 10);
                 }
             }
- 
+
             if (!exit_loop)
             {
                 Print("Retryable error (" + cnt + "/" + 10 +
@@ -716,7 +745,7 @@ int BetterOrderSend2Step(string symbol, int cmd, double volume, double price,
                 RefreshRates();
             }
         }
- 
+
         // We have now exited from loop.
         if (err == ERR_NO_ERROR)
         {
@@ -724,37 +753,118 @@ int BetterOrderSend2Step(string symbol, int cmd, double volume, double price,
             OrderSelect(ticket, SELECT_BY_TICKET, MODE_TRADES);
             OrderPrint();
         }
- 
+
     }  // end
- 
+
     // we now have a market order.
     err = GetLastError(); // so we clear the global variable.
     err = 0;
     ticket = -1;
     exit_loop = false;
- 
+
     if ((cmd == OP_BUY) || (cmd == OP_SELL))
     {
         cnt = 0;
         while (!exit_loop)
         {
+            if (cmd == OP_BUY)
+
+            {
+
+                RefreshRates();
+
+                pnow = MarketInfo(symbol,MODE_ASK);
+
+                myPoint = SetPoint(symbol);
+
+// Robert - Handle slippage
+
+                if (pnow > price)
+
+                {
+
+                    // moved in an unfavorable direction
+
+                    slippagenow = slippage - (pnow - price) / myPoint;
+
+                }
+
+            }
+
+
+
+            if (cmd == OP_SELL)
+
+            {
+
+                RefreshRates();
+
+                pnow = MarketInfo(symbol,MODE_BID);
+
+                myPoint = SetPoint(symbol);
+
+                if (pnow < price)
+
+                {
+
+                    // moved in an unfavorable direction
+
+                    slippagenow = slippage - (price - pnow) / myPoint;
+
+                }
+
+            }
+
+            if (slippagenow > slippage) slippagenow = slippage;
+
             if (IsTradeAllowed())
+
             {
-                ticket = OrderSend(symbol, cmd, volume, price, slippage,
-                                   0.0, 0.0, comment, magic,
-                                   expiration, arrow_color);
-                err = GetLastError();
+
+                if (slippagenow >= 0)
+
+                {
+
+                    ticket = OrderSend(symbol, cmd, volume, pnow, slippagenow,
+
+                                       0.0, 0.0, comment, magic,
+
+                                       expiration, arrow_color);
+
+                    err = GetLastError();
+
+                }
+
+                else
+
+                {
+
+                    // too far away, manually signal ERR_INVALID_PRICE, which
+
+                    // will result in a sleep and a retry.
+
+                    err = ERR_INVALID_PRICE;
+
+                }
+
+
+
             }
+
             else
+
             {
+
                 cnt++;
+
             }
+
             switch (err)
             {
             case ERR_NO_ERROR:
                 exit_loop = true;
                 break;
- 
+
             case ERR_SERVER_BUSY:
             case ERR_NO_CONNECTION:
             case ERR_OFF_QUOTES:
@@ -762,20 +872,20 @@ int BetterOrderSend2Step(string symbol, int cmd, double volume, double price,
             case ERR_TRADE_CONTEXT_BUSY:
                 cnt++; // a retryable error
                 break;
- 
+
             case ERR_PRICE_CHANGED:
             case ERR_REQUOTE:
                 RefreshRates();
                 cnt++;
                 break; // we can apparently retry immediately according to MT docs.
- 
+
             case ERR_INVALID_PRICE:
                 if (cmd == OP_BUY)
                 {
                     RefreshRates();
                     price = MarketInfo(symbol,MODE_ASK);
                 }
- 
+
                 if (cmd == OP_SELL)
                 {
                     RefreshRates();
@@ -783,17 +893,17 @@ int BetterOrderSend2Step(string symbol, int cmd, double volume, double price,
                 }
                 cnt++; // a retryable error
                 break;
- 
+
             default:
                 // an apparently serious, unretryable error.
                 exit_loop = true;
                 break;
- 
+
             }  // end switch
- 
+
             if (cnt > 10)
                 exit_loop = true;
- 
+
             if (!exit_loop)
             {
                 Print("Retryable error (" + cnt + "/" +
@@ -801,7 +911,7 @@ int BetterOrderSend2Step(string symbol, int cmd, double volume, double price,
                 SleepRandomTime(20.5, 40);
                 RefreshRates();
             }
- 
+
             if (exit_loop)
             {
                 if (err != ERR_NO_ERROR)
@@ -814,7 +924,7 @@ int BetterOrderSend2Step(string symbol, int cmd, double volume, double price,
                 }
             }
         }
- 
+
         // we have now exited from loop.
         if (err == ERR_NO_ERROR)
         {
@@ -831,20 +941,20 @@ int BetterOrderSend2Step(string symbol, int cmd, double volume, double price,
             return(-1);
         }
     }
- 
- 
+
+
     if (ticket > 0 && (stoploss != 0 || takeprofit != 0))
     {
         OrderSelect(ticket, SELECT_BY_TICKET);
         bool b_modify = BetterOrderModifySymbol(symbol, cmd, ticket, OrderOpenPrice(),
                                                 stoploss, takeprofit, 0, arrow_color);
     }
- 
+
     return (ticket);
 }
- 
- 
- 
+
+
+
 string OrderType2String(int type)
 {
     if (type == OP_BUY) 		return("BUY");
@@ -854,24 +964,24 @@ string OrderType2String(int type)
     if (type == OP_BUYLIMIT) 	return("BUY LIMIT");
     if (type == OP_SELLLIMIT)	return("SELL LIMIT");
 }
- 
- 
+
+
 bool BetterOrderModify(string symbol, int cmd, int ticket, double price, double stoploss,
                        double takeprofit, datetime expiration,
                        color arrow_color = CLR_NONE)
 {
- 
+
 
     if (!IsConnected())
     {
         return(false);
     }
- 
+
     if (IsStopped())
     {
         return(false);
     }
- 
+
     int cnt = 0;
     while (!IsTradeAllowed() && cnt < 5)
     {
@@ -882,29 +992,29 @@ bool BetterOrderModify(string symbol, int cmd, int ticket, double price, double 
     {
         return(false);
     }
- 
+
     int err = GetLastError();
     err = 0;
     bool exit_loop = false;
     cnt = 0;
     bool result = false;
- 
+
     int digits = MarketInfo(symbol, MODE_DIGITS);
- 
+
     //First - ensure price is right
- 
+
     if (cmd == OP_BUY)
     {
         RefreshRates();
         price = MarketInfo(symbol,MODE_ASK);
     }
- 
+
     if (cmd == OP_SELL)
     {
         RefreshRates();
         price = MarketInfo(symbol,MODE_BID);
     }
- 
+
     if (digits > 0)
     {
         price = NormalizeDouble(price, digits);
@@ -915,7 +1025,7 @@ bool BetterOrderModify(string symbol, int cmd, int ticket, double price, double 
         EnsureValidSL(symbol, price, stoploss);
     if (takeprofit != 0)
         EnsureValidTP(symbol, price, takeprofit);
- 
+
     while (!exit_loop)
     {
         if (IsTradeAllowed())
@@ -926,20 +1036,20 @@ bool BetterOrderModify(string symbol, int cmd, int ticket, double price, double 
         }
         else
             cnt++;
- 
+
         if (result == true)
             exit_loop = true;
- 
+
         switch (err)
         {
         case ERR_NO_ERROR:
             exit_loop = true;
             break;
- 
+
         case ERR_NO_RESULT:
             exit_loop = true;
             break;
- 
+
         case ERR_SERVER_BUSY:
         case ERR_NO_CONNECTION:
         case ERR_INVALID_PRICE:
@@ -949,7 +1059,7 @@ bool BetterOrderModify(string symbol, int cmd, int ticket, double price, double 
         case ERR_TRADE_TIMEOUT:
             cnt++;
             break;
- 
+
         case ERR_INVALID_STOPS:
             cnt++;
             RefreshRates();
@@ -957,7 +1067,7 @@ bool BetterOrderModify(string symbol, int cmd, int ticket, double price, double 
             {
                 price = MarketInfo(symbol,MODE_ASK);
             }
- 
+
             if (cmd == OP_SELL)
             {
                 price = MarketInfo(symbol,MODE_BID);
@@ -967,47 +1077,47 @@ bool BetterOrderModify(string symbol, int cmd, int ticket, double price, double 
             if (takeprofit != 0)
                 EnsureValidTP(symbol, price, takeprofit);
             break;
- 
+
         case ERR_PRICE_CHANGED:
         case ERR_REQUOTE:
             RefreshRates();
             break;
- 
+
         default:
             exit_loop = true;
             break;
- 
+
         }
- 
+
         if (cnt > 5)
             exit_loop = true;
- 
+
         if (!exit_loop)
         {
             SleepRandomTime(4.0, 25.0);
             RefreshRates();
         }
- 
+
     }
- 
+
     // we have now exited from loop.
     if ((result == true) || (err == ERR_NO_ERROR))
     {
         OrderSelect(ticket, SELECT_BY_TICKET, MODE_TRADES);
         return(true); // SUCCESS!
     }
- 
+
     if (err == ERR_NO_RESULT)
     {
         return(true);
     }
- 
- 
- 
+
+
+
     return(false);
 }
- 
- 
+
+
 bool BetterOrderModifySymbol(string symbol, int cmd, int ticket, double price,
                              double stoploss, double takeprofit,
                              datetime expiration, color arrow_color = CLR_NONE)
@@ -1015,121 +1125,121 @@ bool BetterOrderModifySymbol(string symbol, int cmd, int ticket, double price,
     int digits = MarketInfo(symbol, MODE_DIGITS);
 
     //First - ensure price is right
- 
+
     if (cmd == OP_BUY)
     {
         RefreshRates();
         price = MarketInfo(symbol,MODE_ASK);
     }
- 
+
     if (cmd == OP_SELL)
     {
         RefreshRates();
         price = MarketInfo(symbol,MODE_BID);
     }
- 
+
     if (digits > 0)
     {
         price = NormalizeDouble(price, digits);
         stoploss = NormalizeDouble(stoploss, digits);
         takeprofit = NormalizeDouble(takeprofit, digits);
     }
- 
+
     if (stoploss != 0)
         EnsureValidSL(symbol, price, stoploss);
     if (takeprofit != 0)
         EnsureValidTP(symbol, price, takeprofit);
-   
 
-    
+
+
     return(BetterOrderModify(symbol, cmd, ticket, price, stoploss,
                              takeprofit, expiration, arrow_color));
 
 }
- 
+
 void EnsureValidSL(string symbol, double price, double& sl)
 {
- 
+
     if (sl == 0)
         return;
- 
+
     double servers_min_stop = (MarketInfo(symbol, MODE_STOPLEVEL)*dXPoint) * MarketInfo(symbol, MODE_POINT);
- 
+
     if (MathAbs(price - sl) <= servers_min_stop)
     {
- 
+
         if (price > sl)
             sl = price - servers_min_stop;
- 
+
         else if (price < sl)
             sl = price + servers_min_stop;
- 
- 
- 
+
+
+
         sl = NormalizeDouble(sl, MarketInfo(symbol, MODE_DIGITS));
     }
 }
- 
- 
- 
+
+
+
 void EnsureValidTP(string symbol, double price, double& tp)
 {
- 
+
     if (tp == 0)
         return;
- 
+
     double servers_min_stop = (MarketInfo(symbol, MODE_STOPLEVEL)*dXPoint) * MarketInfo(symbol, MODE_POINT);
-   
+
     if (MathAbs(price - tp) <= servers_min_stop)
     {
         if (price < tp)
             tp = price + servers_min_stop;
- 
+
         else if (price > tp)
             tp = price - servers_min_stop;
- 
+
         tp = NormalizeDouble(tp, MarketInfo(symbol, MODE_DIGITS));
     }
 }
- 
+
 void SleepRandomTime(double mean_time, double max_time)
 {
     if (IsTesting())
         return;
- 
+
     double tenths = MathCeil(mean_time / 0.1);
     if (tenths <= 0)
         return;
- 
+
     int maxtenths = MathRound(max_time / 0.1);
     double p = 1.0 - 1.0 / tenths;
- 
+
     Sleep(100);
- 
+
     for (int i = 0; i < maxtenths; i++)
     {
         if (MathRand() > p*32768)
             break;
- 
+
         Sleep(100);
     }
 }
- 
+
 bool BetterCloseBuy (int ticket, double lots, string symbol)
 {
- 
+
     int loopcount=0;
     int gle;
     bool ret;
     double bid;
- 
+
     while(loopcount<10)
     {
         bid=MarketInfo(symbol,MODE_BID);
- 
+
         ret=OrderClose(ticket,lots,bid,Slippage,White);
         gle=GetLastError();
- 
+
         if(gle==0)
         {
             loopcount=11;
@@ -1139,117 +1249,137 @@ bool BetterCloseBuy (int ticket, double lots, string symbol)
             RefreshRates();
             Sleep(500);
         }
- 
- 
+
+
         loopcount++;
- 
+
     }//while
- 
+
     return(ret);
- 
+
 }
- 
+
 bool BetterCloseSell (int ticket, double lots, string symbol)
 {
- 
+
     int loopcount=0;
     int gle;
     double bid;
     bool ret;
- 
+
     while(loopcount<10)
     {
         bid=MarketInfo(symbol,MODE_ASK);
- 
+
         ret=OrderClose(ticket,lots,bid,Slippage,White);
         gle=GetLastError();
- 
+
         if(gle==0)
         {
             loopcount=11;
             break;
- 
+
         }
         else
         {
             RefreshRates();
             Sleep(500);
         }
- 
- 
+
+
         loopcount++;
- 
- 
+
+
     }//while
- 
+
     return(ret);
 }
 
- int OriginalOrderTicketsKeys[];
+int OriginalOrderTicketsKeys[];
 int OriginalOrderTicketsValues[];
 int OriginalOrderTicketsSize = 0;
 
-int GetOriginalOrderTicket(int key) {
-  for (int i = 0; i < OriginalOrderTicketsSize; i++)
-    if (OriginalOrderTicketsKeys[i] == key)
-      return(OriginalOrderTicketsValues[i]);
-  return(-1);
+int GetOriginalOrderTicket(int key)
+{
+    for (int i = 0; i < OriginalOrderTicketsSize; i++)
+        if (OriginalOrderTicketsKeys[i] == key)
+            return(OriginalOrderTicketsValues[i]);
+    return(-1);
 }
 
-void SetOriginalOrderTicket(int key, int value) {
-  for (int i = 0; i < OriginalOrderTicketsSize; i++) {
-    if (OriginalOrderTicketsKeys[i] == -1) {
-      OriginalOrderTicketsKeys[i] = key;
-      OriginalOrderTicketsValues[i] = value;
-      return;
+void SetOriginalOrderTicket(int key, int value)
+{
+    for (int i = 0; i < OriginalOrderTicketsSize; i++)
+    {
+        if (OriginalOrderTicketsKeys[i] == -1)
+        {
+            OriginalOrderTicketsKeys[i] = key;
+            OriginalOrderTicketsValues[i] = value;
+            return;
+        }
     }
-  }
 
-  // no free space, make some
-  OriginalOrderTicketsSize += 1;
-  ArrayResize(OriginalOrderTicketsKeys, OriginalOrderTicketsSize);
-  ArrayResize(OriginalOrderTicketsValues, OriginalOrderTicketsSize);
-  OriginalOrderTicketsKeys[OriginalOrderTicketsSize-1] = key;
-  OriginalOrderTicketsValues[OriginalOrderTicketsSize-1] = value;
+    // no free space, make some
+    OriginalOrderTicketsSize += 1;
+    ArrayResize(OriginalOrderTicketsKeys, OriginalOrderTicketsSize);
+    ArrayResize(OriginalOrderTicketsValues, OriginalOrderTicketsSize);
+    OriginalOrderTicketsKeys[OriginalOrderTicketsSize-1] = key;
+    OriginalOrderTicketsValues[OriginalOrderTicketsSize-1] = value;
 }
 
-int DeleteOriginalOrderTicket(int key) {
-  for (int i = 0; i < OriginalOrderTicketsSize; i++)
-    if (OriginalOrderTicketsKeys[i] == key)
-      OriginalOrderTicketsKeys[i] = -1;
+int DeleteOriginalOrderTicket(int key)
+{
+    for (int i = 0; i < OriginalOrderTicketsSize; i++)
+        if (OriginalOrderTicketsKeys[i] == key)
+            OriginalOrderTicketsKeys[i] = -1;
 }
 
-void DumpOriginalOrderTickets() {
-   int f = FileOpen("original_order_tickets_" + AccountNumber() + ".csv", FILE_WRITE|FILE_CSV);
-   if (f < 0) {
-      Print("ERROR PERSISTING ORIGINAL ORDER TICKETS TO FILE!  PARTIAL CLOSES MAY NOT WORK CORRECTLY");
-      return;
-   }
+void DumpOriginalOrderTickets()
+{
+    int f = FileOpen("original_order_tickets_" + AccountNumber() + ".csv", FILE_WRITE|FILE_CSV);
+    if (f < 0)
+    {
+        Print("ERROR PERSISTING ORIGINAL ORDER TICKETS TO FILE!  PARTIAL CLOSES MAY NOT WORK CORRECTLY");
+        return;
+    }
 
-   FileWrite(f, OriginalOrderTicketsSize);
-   for (int i = 0; i < OriginalOrderTicketsSize; i++)
-      FileWrite(f, OriginalOrderTicketsKeys[i], OriginalOrderTicketsValues[i]);
+    FileWrite(f, OriginalOrderTicketsSize);
+    for (int i = 0; i < OriginalOrderTicketsSize; i++)
+        FileWrite(f, OriginalOrderTicketsKeys[i], OriginalOrderTicketsValues[i]);
 
-   FileClose(f);
+    FileClose(f);
 }
 
-void LoadOriginalOrderTickets() {
-   int f = FileOpen("original_order_tickets_" + AccountNumber() + ".csv", FILE_READ|FILE_CSV);
-   if (f < 0) {
-      Print("ERROR LOADING ORIGINAL ORDER TICKETS FILE!  PARTIAL CLOSES MAY NOT WORK CORRECTLY");
-      Print("DISREGARD THIS ERROR IF THIS IS THE FIRST TIME RUNNING THIS EXPERT ADVISOR");
-      return;
-   }
-   
-   OriginalOrderTicketsSize = StrToInteger(FileReadString(f));
-   ArrayResize(OriginalOrderTicketsKeys, OriginalOrderTicketsSize);
-   ArrayResize(OriginalOrderTicketsValues, OriginalOrderTicketsSize);
-   for (int i = 0; i < OriginalOrderTicketsSize; i++) {
-      OriginalOrderTicketsKeys[i] = StrToInteger(FileReadString(f));
-      OriginalOrderTicketsValues[i] = StrToInteger(FileReadString(f));
-   }
-   
-   FileClose(f);
+void LoadOriginalOrderTickets()
+{
+    int f = FileOpen("original_order_tickets_" + AccountNumber() + ".csv", FILE_READ|FILE_CSV);
+    if (f < 0)
+    {
+        Print("ERROR LOADING ORIGINAL ORDER TICKETS FILE!  PARTIAL CLOSES MAY NOT WORK CORRECTLY");
+        Print("DISREGARD THIS ERROR IF THIS IS THE FIRST TIME RUNNING THIS EXPERT ADVISOR");
+        return;
+    }
+
+    OriginalOrderTicketsSize = StrToInteger(FileReadString(f));
+    ArrayResize(OriginalOrderTicketsKeys, OriginalOrderTicketsSize);
+    ArrayResize(OriginalOrderTicketsValues, OriginalOrderTicketsSize);
+    for (int i = 0; i < OriginalOrderTicketsSize; i++)
+    {
+        OriginalOrderTicketsKeys[i] = StrToInteger(FileReadString(f));
+        OriginalOrderTicketsValues[i] = StrToInteger(FileReadString(f));
+    }
+
+    FileClose(f);
 }
 
- 
+double SetPoint(string sym)
+{
+    double mPoint;
+    if (MarketInfo(sym, MODE_DIGITS) < 4)
+       mPoint = 0.01;
+    else
+       mPoint = 0.0001;
+    return(mPoint);
+
+}
+
