@@ -1,0 +1,10 @@
+LIBRARY mt4tradeduplicator.dll
+EXPORTS
+InitializeDataStore
+StoreNewOrder
+GetOrderCount
+GetOrderCountNoSymbol
+GetOrdersDetails
+GetOrdersDetailsNoSymbol
+ClearOrderTable
+FinalizeOrderTable
