@@ -28,6 +28,9 @@
 #include <string>
 #include <time.h>
 #include <stdio.h>
+#include <pantheios/pantheios.hpp>
+#include <pantheios/inserters/integer.hpp>
+#include <pantheios/inserters/pointer.hpp>
 #include "sdsqlite.h"
 
 

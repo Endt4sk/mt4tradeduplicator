@@ -46,10 +46,13 @@
     <ClCompile>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
+      <AdditionalIncludeDirectories>$(STLSOFT)/include;$(PANTHEIOS_ROOT)/include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <TargetMachine>MachineX86</TargetMachine>
+      <ModuleDefinitionFile>MT4TradeDuplicator.def</ModuleDefinitionFile>
+      <AdditionalLibraryDirectories>$(PANTHEIOS_ROOT)/lib</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -78,6 +81,9 @@
   <ItemGroup>
     <ClInclude Include="sdsqlite.h" />
     <ClInclude Include="sqlite3.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="MT4TradeDuplicator.def" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
