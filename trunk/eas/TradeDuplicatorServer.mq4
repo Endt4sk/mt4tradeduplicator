@@ -23,7 +23,6 @@
 
 
 bool ClearOrderTable();
-bool GetOrderCount(int& orderCount[]);
 bool StoreNewOrder(int orderTicket, string orderSymbol, int op,
                    double orderOpenPrice, double orderStoploss,
                    double orderTakeProfit, double orderLots,
