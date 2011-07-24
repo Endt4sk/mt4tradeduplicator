@@ -26,7 +26,8 @@ bool GetOrdersDetails(int orderCount, string orderSymbol, int acctNumber, int& o
                       double& orderTakeProfit[], double& orderLots[],
                       string orderComment[], int returnedOrders[]);
 bool ClearOrderTable();
-bool GetOrderCount(int& orderCount[], string orderSymbol);
+bool GetOrderCount(int& orderCount[], string orderSymbol, int acctNumber);
+bool GetOrderCountNoSymbol(int& orderCount[], int acctNumber);
 bool FinalizeOrderTable();
 #import
 
@@ -38,6 +39,7 @@ extern int PipsAwayLimit = 20;
 extern double LotMultiplier = 1;
 extern int PipsDeviation = 20;
 extern bool CleanStrays = true;
+extern bool LockToChartSymbol = true;
 extern int AccountFilter = 0;
 int    g_StoredOrderTicket[];             //    OrderTicket()
 string g_StoredOrderSymbol[];             //    OrderSymbol()
@@ -489,7 +491,10 @@ int databaseOrderCount()
     bool goodCallGetOrderCount = false;
     while (goodCallGetOrderCount == 0)
     {
-        goodCallGetOrderCount =  GetOrderCount(ordercount, StringSubstr(Symbol(), 0, 6));
+        if (LockToChartSymbol == true)
+         goodCallGetOrderCount =  GetOrderCount(ordercount, StringSubstr(Symbol(), 0, 6), 0);
+        else
+         goodCallGetOrderCount =  GetOrderCountNoSymbol(ordercount, 0);
  
     }
  
@@ -530,6 +535,9 @@ void CloseStrayLocalOrders ()
             {
                 closeprice = NormalizeDouble(MarketInfo(Symbol(),MODE_ASK),MarketInfo(Symbol(),MODE_DIGITS));
             }
+            
+            if ((LockToChartSymbol == true && OrderSymbol() == Symbol()) ||
+                (LockToChartSymbol == false))
             if ((OrderType() == OP_BUY) || (OrderType() == OP_SELL))
             {
                 OrderClose(OrderTicket(), OrderLots(), closeprice,
