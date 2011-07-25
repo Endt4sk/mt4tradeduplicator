@@ -53,6 +53,7 @@
       <TargetMachine>MachineX86</TargetMachine>
       <ModuleDefinitionFile>MT4TradeDuplicator.def</ModuleDefinitionFile>
       <AdditionalLibraryDirectories>$(PANTHEIOS_ROOT)/lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>pantheios.1.core.vc10.mt.debug.lib;pantheios.1.util.vc10.mt.debug.lib;pantheios.1.be.file.vc10.mt.debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

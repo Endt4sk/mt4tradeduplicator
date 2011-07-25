@@ -28,9 +28,17 @@
 #include <string>
 #include <time.h>
 #include <stdio.h>
-#include <pantheios/pantheios.hpp>
-#include <pantheios/inserters/integer.hpp>
-#include <pantheios/inserters/pointer.hpp>
+
+
+// Headers for Pantheios
+#include <pantheios/pantheios.hpp> 
+#include <pantheios/backends/bec.file.h> 
+
+// Headers for implicit linking
+#include <pantheios/implicit_link/core.h>
+#include <pantheios/implicit_link/fe.simple.h>
+#include <pantheios/implicit_link/be.file.h>
+
 #include "sdsqlite.h"
 
 
@@ -68,17 +76,19 @@ void __stdcall	        InitStorage(const char* path)
 {
     try
     {
-        std::string databasePath = "";
+        
+		std::string databasePath = "";
         databasePath = std::string(path);
         databasePath += "\\tradedup.db";
-        sd::sqlite database(databasePath);
-        database << "create table if not exists tempTrades (orderid int, ordersymbol text, ordercomment text, ordertype int, orderopenprice double, orderstoploss double, ordertakeprofit double, orderlots double, orderopentime text , ordercomment text)";
-        database << "create table if not exists activeTrades (orderid int, ordersymbol text, ordercomment text, ordertype int, orderopenprice double, orderstoploss double, ordertakeprofit double, orderlots double, orderopentime text , ordercomment text)";
-
-    }
+		sd::sqlite database(databasePath);
+		database << "create table if not exists tempTrades (orderid int, ordersymbol text, ordercomment text, ordertype int, orderopenprice double, orderstoploss double, ordertakeprofit double, orderlots double, orderopentime text, accountnumber int)";
+        database << "create table if not exists activeTrades (orderid int, ordersymbol text, ordercomment text, ordertype int, orderopenprice double, orderstoploss double, ordertakeprofit double, orderlots double, orderopentime text, accountnumber int)";
+	}
     catch (sd::db_error& err)
     {
-        // do something with error
+      
+
+		// do something with error
 
         //FILELog::ReportingLevel() = FILELog::FromString("ERROR");
         //FILE_LOG(logDEBUG) << "Error on sqlitedb create table: " << err.what_;
@@ -128,6 +138,12 @@ extern "C"
 
     {
 
+		//pantheios::log_NOTICE(PANTHEIOS_LITERAL_STRING("log-1")); // save until log file set
+		//pantheios_be_file_setFilePath(PANTHEIOS_LITERAL_STRING("test-%T-%D.log"));
+		//pantheios::pan_char_t("mylogfile")); // sets log file; write "log-1" stmt
+		//pantheios::log_NOTICE(PANTHEIOS_LITERAL_STRING("log-2")); // write "log-2" stmt
+		//pantheios_be_file_setFilePath(NULL); // close "mylogfile"
+
 
         BOOL retValue = 0;
 
@@ -144,15 +160,13 @@ extern "C"
 
             sd::sqlite database(databasePath);   // open the db with the table already created
             sd::sql insert_query(database);   // build an sql query
-            insert_query << "insert into tempTrades (orderid , ordersymbol, ordertype, orderopenprice, orderstoploss, ordertakeprofit, orderlots, orderopentime,  accountnumber, ordercomment) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
+			insert_query << "insert into tempTrades (orderid , ordersymbol, ordertype, orderopenprice, orderstoploss, ordertakeprofit, orderlots, orderopentime,  accountnumber, ordercomment) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+													
             //database << "begin transaction";// create a transaction for speed
-
-            // insert data (sdsqlite will auto-detect data type and execute query)
+			// insert data (sdsqlite will auto-detect data type and execute query)
             insert_query << orderTicket << orderSymbol << op << orderOpenPrice << orderStoploss
-            << orderTakeProfit << orderLots << orderOpenTime <<  acctNumber;
-
-            //insert_query.step();
+            << orderTakeProfit << orderLots << orderOpenTime <<  acctNumber << orderComment;
+			//insert_query.step();
 
             //database << "commit transaction";// complete transaction
             retValue = 1;
@@ -398,6 +412,66 @@ extern "C"
         return retValue;
     }
 
+	MT4_EXPFUNC BOOL	__stdcall	CheckOrderStored(const int orderTicket, const int acctNumber)
+    {
+
+        BOOL retValue = 0;
+
+        InitStorage(tmpDir());
+
+        std::string sOrderSymbol;
+        std::string sOrderDatetime;
+        int rwCnt = 0;
+
+        try
+        {
+            std::string databasePath = "";
+            databasePath = tmpDir();
+            databasePath += "\\tradedup.db";
+
+
+            sd::sqlite database(databasePath);   // open the db with the table already created
+            sd::sql selquery(database);
+
+
+            std::string squery = "select orderid from activeTrades where orderid =";
+			squery += orderTicket;
+
+            if (acctNumber != 0)
+            {
+                squery += " and accountnumber = ";
+                squery += acctNumber;
+            }
+
+            selquery << squery;
+
+            // extract the matching rows
+
+            while (selquery.step())
+            {
+                int orderIDSelect = 0;
+				selquery >>   orderIDSelect;
+				if (orderIDSelect == orderTicket)
+				{
+					retValue = 1;
+				}
+                
+            }
+        
+            retValue = 1;
+
+
+        }
+        catch (sd::db_error& err)
+        {
+            // do something with error
+            //std::string errText = err.what_;
+
+            retValue = 0;
+        }
+
+        return retValue;
+    }
     MT4_EXPFUNC BOOL	__stdcall		ClearOrderTable()
     {
 
