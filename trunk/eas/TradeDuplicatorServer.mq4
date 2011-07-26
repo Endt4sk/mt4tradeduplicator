@@ -19,14 +19,15 @@
 #property copyright "Copyright © 2009, OpenThinking Software, LLC"
 #property link      "http://www.openthinkingsoftware.com"
 
-#import "TradeDuplicator.dll"
+#import "MT4TradeDuplicator.dll"
 
 
 bool ClearOrderTable();
 bool StoreNewOrder(int orderTicket, string orderSymbol, int op,
                    double orderOpenPrice, double orderStoploss,
                    double orderTakeProfit, double orderLots,
-                   string orderOpenTime, string orderComment);
+                   string orderOpenTime, int acctNumber, string orderComment);
+                   
 bool FinalizeOrderTable();
 #import
 
@@ -90,7 +91,7 @@ void PopulateOrders()
             StoreNewOrder(OrderTicket(), StringSubstr(OrderSymbol(), 0, 6), OrderType(),
                    OrderOpenPrice(), OrderStopLoss(),
                    OrderTakeProfit(), OrderLots(),
-                   TimeToStr(OrderOpenTime()), OrderComment());
+                   TimeToStr(OrderOpenTime()), AccountNumber(), OrderComment());
         }
     }
     
