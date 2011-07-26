@@ -26,6 +26,7 @@
 #include <windows.h>
 
 #include <string>
+#include <vector>
 #include <time.h>
 #include <stdio.h>
 
@@ -137,7 +138,6 @@ extern "C"
             const char *orderOpenTime,  const int acctNumber, const char *orderComment)
 
     {
-
 		//pantheios::log_NOTICE(PANTHEIOS_LITERAL_STRING("log-1")); // save until log file set
 		//pantheios_be_file_setFilePath(PANTHEIOS_LITERAL_STRING("test-%T-%D.log"));
 		//pantheios::pan_char_t("mylogfile")); // sets log file; write "log-1" stmt
@@ -274,9 +274,9 @@ extern "C"
     }
 
 
-    MT4_EXPFUNC BOOL	__stdcall	GetOrdersDetails(const int orderCount, const char* orderSymbol, const int acctNumber, int orderTicket[], int op[],
+    MT4_EXPFUNC int	__stdcall	GetOrdersDetails(const int orderCount, const char* orderSymbol, const int acctNumber, int orderTicket[], int op[],
             double orderOpenPrice[], double orderStoploss[],
-            double orderTakeProfit[], double orderLots[], MqlStr * ordercomments,  int returnedOrders[])
+            double orderTakeProfit[], double orderLots[], MqlStr * ordersymbol, MqlStr * ordercomments,  int returnedOrders[])
     {
 
         BOOL retValue = 0;
@@ -299,7 +299,7 @@ extern "C"
             sd::sql selquery(database);
 
 
-            std::string squery = "select orderid , ordertype, orderopenprice, orderstoploss, ordertakeprofit, orderlots, ordercomments  from activeTrades where ordersymbol = '";
+            std::string squery = "select orderid , ordertype, orderopenprice, orderstoploss, ordertakeprofit, orderlots, ordercomment, ordersymbol  from activeTrades where ordersymbol = '";
             squery += orderSymbol;
             squery += "'";
 
@@ -316,13 +316,17 @@ extern "C"
             while (selquery.step())
             {
                 std::string comString;
-                selquery >>  orderTicket[rwCnt] >> op[rwCnt] >> orderOpenPrice[rwCnt] >> orderStoploss[rwCnt] >> orderTakeProfit[rwCnt] >> orderLots[rwCnt] >> comString;
-                int szString1 = lstrlenA(comString.c_str());
-                char * string1 = (char*)malloc(szString1 + 1);
-                lstrcpyA(string1, comString.c_str());
+				std::string symbolString;
+                selquery >>  orderTicket[rwCnt] >> op[rwCnt] >> orderOpenPrice[rwCnt] >> orderStoploss[rwCnt] >> orderTakeProfit[rwCnt] >> orderLots[rwCnt] >> comString >> symbolString;
+                std::vector<char> writableComString(comString.size() + 1);
+				std::copy(comString.begin(), comString.end(), writableComString.begin());
+				strcpy(ordercomments[rwCnt].string, &writableComString[0]);
+				ordercomments[rwCnt].len = comString.size() + 1;
 
-                ordercomments[rwCnt].string = string1;
-                ordercomments[rwCnt].len = szString1;
+                std::vector<char> writableSymbolString(symbolString.size() + 1);
+				std::copy(symbolString.begin(), symbolString.end(), writableSymbolString.begin());
+				strcpy(ordersymbol[rwCnt].string, &writableSymbolString[0]);
+				ordersymbol[rwCnt].len = symbolString.size() + 1;
 
                 retValue = 1;
                 rwCnt++;
@@ -344,9 +348,9 @@ extern "C"
         return retValue;
     }
 
-    MT4_EXPFUNC BOOL	__stdcall	GetOrdersDetailsNoSymbol(const int orderCount, const int acctNumber, int orderTicket[], int op[],
+    MT4_EXPFUNC int	__stdcall	GetOrdersDetailsNoSymbol(const int orderCount, const int acctNumber, int orderTicket[], int op[],
             double orderOpenPrice[], double orderStoploss[],
-            double orderTakeProfit[], double orderLots[], MqlStr * ordercomments, int returnedOrders[])
+            double orderTakeProfit[], double orderLots[], MqlStr * ordersymbol, MqlStr * ordercomments, int returnedOrders[])
     {
 
         BOOL retValue = 0;
@@ -369,11 +373,11 @@ extern "C"
             sd::sql selquery(database);
 
 
-            std::string squery = "select orderid , ordertype, orderopenprice, orderstoploss, ordertakeprofit, orderlots, ordercomments from activeTrades ";
+            std::string squery = "select orderid , ordertype, orderopenprice, orderstoploss, ordertakeprofit, orderlots, ordercomment, ordersymbol from activeTrades ";
 
             if (acctNumber != 0)
             {
-                squery += " and accountnumber = ";
+                squery += " where accountnumber = ";
                 squery += acctNumber;
             }
 
@@ -384,13 +388,24 @@ extern "C"
             while (selquery.step())
             {
                 std::string comString;
-                selquery >>  orderTicket[rwCnt] >> op[rwCnt] >> orderOpenPrice[rwCnt] >> orderStoploss[rwCnt] >> orderTakeProfit[rwCnt] >> orderLots[rwCnt]>> comString;
-                int szString1 = lstrlenA(comString.c_str());
-                char * string1 = (char*)malloc(szString1 + 1);
-                lstrcpyA(string1, comString.c_str());
+				std::string symbolString;
+                selquery >>  orderTicket[rwCnt] >> op[rwCnt] >> orderOpenPrice[rwCnt] >> orderStoploss[rwCnt] >> orderTakeProfit[rwCnt] >> orderLots[rwCnt]>> comString >> symbolString;
+                //int szString1 = lstrlenA(comString.c_str());
+                //char * string1 = (char*)malloc(szString1 + 1);
+                //lstrcpyA(string1, comString.c_str());
 
-                ordercomments[rwCnt].string = string1;
-                ordercomments[rwCnt].len = szString1;
+                //ordercomments[rwCnt].string = string1;
+                //ordercomments[rwCnt].len = szString1;
+				MessageBoxA(GetActiveWindow(),comString.c_str(),"Request",MB_OK);
+				std::vector<char> writableComString(comString.size() + 1);
+				std::copy(comString.begin(), comString.end(), writableComString.begin());
+				strcpy(ordercomments[rwCnt].string, &writableComString[0]);
+				ordercomments[rwCnt].len = strlen(&writableComString[0]);
+
+                std::vector<char> writableSymbolString(symbolString.size() + 1);
+				std::copy(symbolString.begin(), symbolString.end(), writableSymbolString.begin());
+				strcpy(ordersymbol[rwCnt].string, &writableSymbolString[0]);
+				ordersymbol[rwCnt].len = strlen(&writableSymbolString[0]);
 
                 retValue = 1;
                 rwCnt++;
