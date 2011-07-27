@@ -29,7 +29,7 @@
 #include <vector>
 #include <time.h>
 #include <stdio.h>
-
+#include <iostream>
 
 // Headers for Pantheios
 #include <pantheios/pantheios.hpp> 
@@ -119,6 +119,7 @@ const char *tmpDir()
 extern "C"
 {
 #endif
+
 
     MT4_EXPFUNC VOID __stdcall	  InitializeDataStore()
 
@@ -350,7 +351,7 @@ extern "C"
 
     MT4_EXPFUNC int	__stdcall	GetOrdersDetailsNoSymbol(const int orderCount, const int acctNumber, int orderTicket[], int op[],
             double orderOpenPrice[], double orderStoploss[],
-            double orderTakeProfit[], double orderLots[], MqlStr * ordersymbol, MqlStr * ordercomments, int returnedOrders[])
+            double orderTakeProfit[], double orderLots[], MqlStr *  ordersymbol, MqlStr * ordercomments, int returnedOrders[])
     {
 
         BOOL retValue = 0;
@@ -396,22 +397,25 @@ extern "C"
 
                 //ordercomments[rwCnt].string = string1;
                 //ordercomments[rwCnt].len = szString1;
-				MessageBoxA(GetActiveWindow(),comString.c_str(),"Request",MB_OK);
+
 				std::vector<char> writableComString(comString.size() + 1);
+
 				std::copy(comString.begin(), comString.end(), writableComString.begin());
+
 				strcpy(ordercomments[rwCnt].string, &writableComString[0]);
+				
+                
 				ordercomments[rwCnt].len = strlen(&writableComString[0]);
 
-                std::vector<char> writableSymbolString(symbolString.size() + 1);
-				std::copy(symbolString.begin(), symbolString.end(), writableSymbolString.begin());
-				strcpy(ordersymbol[rwCnt].string, &writableSymbolString[0]);
-				ordersymbol[rwCnt].len = strlen(&writableSymbolString[0]);
-
+				//MessageBoxA(GetActiveWindow(),"B","DEBUG",MB_OK);
+                //std::vector<char> writableSymbolString(symbolString.size() + 1);
+				//std::copy(symbolString.begin(), symbolString.end(), writableSymbolString.begin());
+				strcpy(ordersymbol[rwCnt].string, symbolString.c_str()); //&writableSymbolString[0]);
+				ordersymbol[rwCnt].len = strlen(symbolString.c_str());
                 retValue = 1;
                 rwCnt++;
 
             }
-
 
         }
         catch (sd::db_error& err)
@@ -421,7 +425,6 @@ extern "C"
 
             retValue = 0;
         }
-
 
         returnedOrders[0] = rwCnt;
         return retValue;
