@@ -34,6 +34,7 @@ bool ClearOrderTable();
 bool GetOrderCount(int& orderCount[], string orderSymbol, int acctNumber);
 bool GetOrderCountNoSymbol(int& orderCount[], int acctNumber);
 bool FinalizeOrderTable();
+int ConvertChar(string val);
 #import
 
 #include <stdlib.mqh>
@@ -90,7 +91,7 @@ void init()
     ResetOrderArray();
     if (CleanStrays == true)
         CloseStrayLocalOrders();
-    Print("exiting clean strays");
+
     if (Digits==3||Digits==5)
     {
         dXPoint=10;
@@ -139,8 +140,8 @@ void start()
 
 void processTrades()
 {
-    double p=MarketInfo(Symbol(), MODE_POINT);
-    Print("In processTrades()");
+    
+
     int    d;
     int    i;
     int    in;
@@ -166,10 +167,10 @@ void processTrades()
 
     //First populate new array
     RetrieveOrders( StoredOrderTicket, StoredOrderType, StoredOrderOpenPrice,
-                    StoredOrderLots, StoredOrderStopLoss, StoredOrdeTakeProfit, StoredOrderComment);
+                    StoredOrderLots, StoredOrderStopLoss, StoredOrdeTakeProfit, StoredOrderComment, StoredOrderSymbol);
 
     k=ArraySize(g_StoredOrderTicket);
-    
+    double p;
     
     //Let's first search thru for any closes
     
@@ -178,7 +179,7 @@ void processTrades()
         if (ArraySearchInt(StoredOrderTicket, g_StoredOrderTicket[i])<0)
         {
             ot=g_StoredOrderType[i];
-
+            
             //Send closed / delete
 
             //Send close if market else send delete
@@ -230,7 +231,7 @@ void processTrades()
     for (i=0; i<k; i++)
     {
 
-
+        p=MarketInfo(StoredOrderSymbol[i], MODE_POINT);
         // Search for OrderTicket in old array
         in=ArraySearchInt(g_StoredOrderTicket, StoredOrderTicket[i]);
 
@@ -241,27 +242,27 @@ void processTrades()
             double pnow = 0.0;
             newlots = StoredOrderLots[i] * LotMultiplier;
  
-            if (newlots < MarketInfo(Symbol(),MODE_MINLOT))
+            if (newlots < MarketInfo(StoredOrderSymbol[i],MODE_MINLOT))
             {
-                newlots = MarketInfo(Symbol(),MODE_MINLOT);
+                newlots = MarketInfo(StoredOrderSymbol[i],MODE_MINLOT);
             }
-            if (newlots > MarketInfo(Symbol(),MODE_MAXLOT))
+            if (newlots > MarketInfo(StoredOrderSymbol[i],MODE_MAXLOT))
             {
-                newlots = MarketInfo(Symbol(),MODE_MAXLOT);
+                newlots = MarketInfo(StoredOrderSymbol[i],MODE_MAXLOT);
             }
  
  
             if (StoredOrderType[i] == OP_BUY)
             {
-                pnow = NormalizeDouble(MarketInfo(Symbol(), MODE_ASK), MarketInfo(Symbol(), MODE_DIGITS)); // we are buying at Ask
+                pnow = NormalizeDouble(MarketInfo(StoredOrderSymbol[i], MODE_ASK), MarketInfo(StoredOrderSymbol[i], MODE_DIGITS)); // we are buying at Ask
             }
             else if (StoredOrderType[i] == OP_SELL)
             {
-                pnow = NormalizeDouble(MarketInfo(Symbol(), MODE_BID), MarketInfo(Symbol(), MODE_DIGITS)); // we are buying at Ask
+                pnow = NormalizeDouble(MarketInfo(StoredOrderSymbol[i], MODE_BID), MarketInfo(StoredOrderSymbol[i], MODE_DIGITS)); // we are buying at Ask
             }
             else
             {
-                pnow = NormalizeDouble(StoredOrderOpenPrice[i], MarketInfo(Symbol(), MODE_DIGITS));
+                pnow = NormalizeDouble(StoredOrderOpenPrice[i], MarketInfo(StoredOrderSymbol[i], MODE_DIGITS));
             }
  
  
@@ -272,16 +273,16 @@ void processTrades()
             if ((PipsDeviated(pnow, StoredOrderOpenPrice[i]) <= PipsDeviation)  && okayToProcess == true)
             {
  
- 
+
                 if (newCmd == OP_BUY || newCmd == OP_SELL)
-                    BetterOrderSend2Step(Symbol(), newCmd, newlots, pnow,
+                    BetterOrderSend2Step(StoredOrderSymbol[i], newCmd, newlots, pnow,
                                    Slippage, StoredOrderStopLoss[i], StoredOrdeTakeProfit[i],
-                                   "TradeDuplicator " + StoredOrderComment[i], StoredOrderTicket[i], 0, Blue);
+                                   StoredOrderComment[i], StoredOrderTicket[i], 0, Blue);
                 else
                 {
-                    BetterOrderSend2Step(Symbol(), newCmd, newlots, newPrice,
+                    BetterOrderSend2Step(StoredOrderSymbol[i], newCmd, newlots, newPrice,
                                    Slippage, StoredOrderStopLoss[i], StoredOrdeTakeProfit[i],
-                                   "TradeDuplicator " + StoredOrderComment[i], StoredOrderTicket[i], 0, Blue);
+                                   StoredOrderComment[i], StoredOrderTicket[i], 0, Blue);
                 }
             }
  
@@ -402,21 +403,14 @@ void processTrades()
     if (k > 0)
     {
         ArrayCopy(g_StoredOrderTicket, StoredOrderTicket);
-        Print("StoredOrderTicket", ArraySize(StoredOrderTicket));
         ArrayCopy(g_StoredOrderSymbol, StoredOrderSymbol);
-        Print("StoredOrderSymbol", ArraySize(StoredOrderSymbol));
         ArrayCopy(g_StoredOrderType, StoredOrderType);
-        Print("StoredOrderType", ArraySize(StoredOrderType));
         ArrayCopy(g_StoredOrderOpenPrice, StoredOrderOpenPrice);
-        Print("StoredOrderOpenPrice", ArraySize(StoredOrderOpenPrice));
         ArrayCopy(g_StoredOrderStopLoss, StoredOrderStopLoss);
-        Print("StoredOrderStopLoss", ArraySize(StoredOrderStopLoss));
         ArrayCopy(g_StoredOrdeTakeProfit, StoredOrdeTakeProfit);
-        Print("StoredOrdeTakeProfit", ArraySize(StoredOrdeTakeProfit));
         ArrayCopy(g_StoredOrderLots, StoredOrderLots);
-        Print("StoredOrderLots", ArraySize(StoredOrderLots));
         ArrayCopy(g_StoredOrderOpenTime, StoredOrderOpenTime);   
-        Print("StoredOrderOpenTime", ArraySize(StoredOrderOpenTime));
+
     }
  
 }
@@ -429,7 +423,7 @@ void ResetOrderArray()
 {
  
     RetrieveOrders( g_StoredOrderTicket, g_StoredOrderType, g_StoredOrderOpenPrice,
-                    g_StoredOrderLots, g_StoredOrderStopLoss, g_StoredOrdeTakeProfit, g_StoredOrderComment);
+                    g_StoredOrderLots, g_StoredOrderStopLoss, g_StoredOrdeTakeProfit, g_StoredOrderComment, g_StoredOrderSymbol);
  
 }
  
@@ -570,14 +564,14 @@ void CloseStrayLocalOrders ()
 }
 void RetrieveOrders( int& aStoredOrderTicket[], int& aStoredOrderType[], double& aStoredOrderOpenPrice[],
                      double& aStoredOrderLots[], double& aStoredOrderStopLoss[], double& aStoredOrdeTakeProfit[],
-                     string& aStoredOrderComment[])
+                     string& aStoredOrderComment[], string& aStoredOrderSymbol[])
 {
     bool sameCount = false;
- 
+
     while (sameCount == false)
     {
         int i, k=databaseOrderCount();
-        Print("Order count: ", databaseOrderCount());
+
         if (k > 0)
         {
             bool goodResponse = false;
@@ -589,6 +583,7 @@ void RetrieveOrders( int& aStoredOrderTicket[], int& aStoredOrderType[], double&
             ArrayResize(aStoredOrdeTakeProfit, k);
             ArrayResize(aStoredOrderLots, k);
             ArrayResize(aStoredOrderComment, k);
+            ArrayResize(aStoredOrderSymbol, k);
             
             ArrayInitialize(aStoredOrderOpenPrice, MathRandRange(1, 255));
             ArrayInitialize(aStoredOrderType, MathRandRange(1, 255));
@@ -596,19 +591,27 @@ void RetrieveOrders( int& aStoredOrderTicket[], int& aStoredOrderType[], double&
             ArrayInitialize(aStoredOrderStopLoss, MathRandRange(1, 255));
             ArrayInitialize(aStoredOrdeTakeProfit, MathRandRange(1, 255));
             ArrayInitialize(aStoredOrderLots, MathRandRange(1, 255));
-         
+            
+            Print ("ConvertChar", ConvertChar("a"));
+            Print ("StringGetChar", StringGetChar("a", 0));
             //Init comments
             
             for (int i2=0; i2<k; i2++)
             {
-               aStoredOrderComment[k] = "1111111111111111111111111111111111111111111111111";
+               aStoredOrderComment[i2] = "11111111111111111111111111111111111111111111111111111111" + i2;
             }
             
-            string aStoredOrderSymbol[];
+            
             
             for (i2=0; i2<k; i2++)
             {
-               aStoredOrderSymbol[k] = "111111122222321111111111111111111111111111111111111111111";
+               aStoredOrderSymbol[i2] = "111111122222321111111111111111111111111111111111111111111" + i2;
+            }
+            
+            for (i2=0; i2<k; i2++)
+            {
+               Print("aStoredOrderComment[" + i2 + "]", aStoredOrderComment[i2]);
+               Print("aStoredOrderSymbol[" + i2 + "]", aStoredOrderSymbol[i2]);
             }
             while(goodResponse == 0)
             {
@@ -624,7 +627,12 @@ void RetrieveOrders( int& aStoredOrderTicket[], int& aStoredOrderType[], double&
                                                 returnedOrderCount);
             }
 
- 
+            for (i2=0; i2<k; i2++)
+            {
+               Print("aStoredOrderComment[" + i2 + "]", aStoredOrderComment[i2]);
+               Print("aStoredOrderSymbol[" + i2 + "]", aStoredOrderSymbol[i2]);
+            }
+
  
             if (returnedOrderCount[0] == ArraySize(aStoredOrdeTakeProfit))
                 sameCount = true;
@@ -1415,4 +1423,4 @@ int ArraySearchTimeDoubleString(datetime ta[], double da[], string sa[], datetim
   return(-1);
 }
  
- 
+
