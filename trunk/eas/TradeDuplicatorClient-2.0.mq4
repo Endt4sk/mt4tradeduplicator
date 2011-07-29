@@ -47,6 +47,7 @@ extern int PipsDeviation = 20;
 extern bool CleanStrays = true;
 extern bool LockToChartSymbol = false;
 extern int AccountFilter = 0;
+extern bool ReverseTrades = false;
 int    g_StoredOrderTicket[];             //    OrderTicket()
 string g_StoredOrderSymbol[];             //    OrderSymbol()
 string g_StoredOrderComment[];             //    OrderSymbol()
@@ -89,6 +90,8 @@ void init()
 
     }
     ResetOrderArray();
+    LoadOriginalOrderTickets();
+        
     if (CleanStrays == true)
         CloseStrayLocalOrders();
 
@@ -412,7 +415,8 @@ void processTrades()
         ArrayCopy(g_StoredOrderOpenTime, StoredOrderOpenTime);   
 
     }
- 
+   
+    DumpOriginalOrderTickets();
 }
  
  
