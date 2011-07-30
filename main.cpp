@@ -42,6 +42,9 @@
 
 #include "sdsqlite.h"
 
+//this definition is necessary, it gives the name to your application
+extern "C" const TCHAR PANTHEIOS_FE_PROCESS_IDENTITY[] = L"MT4TradeDuplicator";
+#define ERROR_LOG_FILE_NAME	L"database_err_log.log"
 
 enum TradeOperation
 {
@@ -139,14 +142,15 @@ extern "C"
             const char *orderOpenTime,  const int acctNumber, const char *orderComment)
 
     {
-		//pantheios::log_NOTICE(PANTHEIOS_LITERAL_STRING("log-1")); // save until log file set
-		//pantheios_be_file_setFilePath(PANTHEIOS_LITERAL_STRING("test-%T-%D.log"));
-		//pantheios::pan_char_t("mylogfile")); // sets log file; write "log-1" stmt
-		//pantheios::log_NOTICE(PANTHEIOS_LITERAL_STRING("log-2")); // write "log-2" stmt
-		//pantheios_be_file_setFilePath(NULL); // close "mylogfile"
 
 
         BOOL retValue = 0;
+
+		int panres =  pantheios::pantheios_init();
+		pantheios_be_file_setFilePath(ERROR_LOG_FILE_NAME, 
+		PANTHEIOS_BE_FILE_F_TRUNCATE, 
+		PANTHEIOS_BE_FILE_F_TRUNCATE, 
+		PANTHEIOS_BEID_LOCAL);
 
         InitStorage(tmpDir());
 
@@ -175,8 +179,10 @@ extern "C"
         }
         catch (sd::db_error& err)
         {
-            // do something with error
-            //err.what_
+			wchar_t buffer[256]={0};
+			mbstowcs(buffer,err.what(),256);
+			pantheios::log_ERROR(buffer);
+			delete[] buffer;
 
         }
 
@@ -190,7 +196,14 @@ extern "C"
     {
         BOOL retValue = 0;
 
+		int panres =  pantheios::pantheios_init();
+		pantheios_be_file_setFilePath(ERROR_LOG_FILE_NAME, 
+		PANTHEIOS_BE_FILE_F_TRUNCATE, 
+		PANTHEIOS_BE_FILE_F_TRUNCATE, 
+		PANTHEIOS_BEID_LOCAL);
+
         InitStorage(tmpDir());
+
 
 
         try
@@ -225,7 +238,10 @@ extern "C"
         }
         catch (sd::db_error& err)
         {
-
+			wchar_t buffer[256]={0};
+			mbstowcs(buffer,err.what(),256);
+			pantheios::log_ERROR(buffer);
+			delete[] buffer;
         }
 
         return retValue;
@@ -234,6 +250,12 @@ extern "C"
     MT4_EXPFUNC BOOL	__stdcall	GetOrderCountNoSymbol(int orderCount[], const int acctNumber)
     {
         BOOL retValue = 0;
+
+		int panres =  pantheios::pantheios_init();
+		pantheios_be_file_setFilePath(ERROR_LOG_FILE_NAME, 
+		PANTHEIOS_BE_FILE_F_TRUNCATE, 
+		PANTHEIOS_BE_FILE_F_TRUNCATE, 
+		PANTHEIOS_BEID_LOCAL);
 
         InitStorage(tmpDir());
 
@@ -268,7 +290,10 @@ extern "C"
         }
         catch (sd::db_error& err)
         {
-
+			wchar_t buffer[256]={0};
+			mbstowcs(buffer,err.what(),256);
+			pantheios::log_ERROR(buffer);
+			delete[] buffer;
         }
 
         return retValue;
@@ -282,6 +307,11 @@ extern "C"
 
         BOOL retValue = 0;
 
+		int panres =  pantheios::pantheios_init();
+		pantheios_be_file_setFilePath(ERROR_LOG_FILE_NAME, 
+		PANTHEIOS_BE_FILE_F_TRUNCATE, 
+		PANTHEIOS_BE_FILE_F_TRUNCATE, 
+		PANTHEIOS_BEID_LOCAL);
 
         InitStorage(tmpDir());
 
@@ -338,9 +368,10 @@ extern "C"
         }
         catch (sd::db_error& err)
         {
-            // do something with error
-            //std::string errText = err.what_;
-
+            wchar_t buffer[256]={0};
+			mbstowcs(buffer,err.what(),256);
+			pantheios::log_ERROR(buffer);
+			delete[] buffer;
             retValue = 0;
         }
 
@@ -356,6 +387,11 @@ extern "C"
 
         BOOL retValue = 0;
 
+		int panres =  pantheios::pantheios_init();
+		pantheios_be_file_setFilePath(ERROR_LOG_FILE_NAME, 
+		PANTHEIOS_BE_FILE_F_TRUNCATE, 
+		PANTHEIOS_BE_FILE_F_TRUNCATE, 
+		PANTHEIOS_BEID_LOCAL);
 
         InitStorage(tmpDir());
 
@@ -420,10 +456,12 @@ extern "C"
         }
         catch (sd::db_error& err)
         {
-            // do something with error
-            //std::string errText = err.what_;
-
+            wchar_t buffer[256]={0};
+			mbstowcs(buffer,err.what(),256);
+			pantheios::log_ERROR(buffer);
+			delete[] buffer;
             retValue = 0;
+
         }
 
         returnedOrders[0] = rwCnt;
@@ -434,6 +472,12 @@ extern "C"
     {
 
         BOOL retValue = 0;
+
+		int panres =  pantheios::pantheios_init();
+		pantheios_be_file_setFilePath(ERROR_LOG_FILE_NAME, 
+		PANTHEIOS_BE_FILE_F_TRUNCATE, 
+		PANTHEIOS_BE_FILE_F_TRUNCATE, 
+		PANTHEIOS_BEID_LOCAL);
 
         InitStorage(tmpDir());
 
@@ -482,8 +526,10 @@ extern "C"
         }
         catch (sd::db_error& err)
         {
-            // do something with error
-            //std::string errText = err.what_;
+            wchar_t buffer[256]={0};
+			mbstowcs(buffer,err.what(),256);
+			pantheios::log_ERROR(buffer);
+			delete[] buffer;
 
             retValue = 0;
         }
@@ -494,6 +540,13 @@ extern "C"
     {
 
         BOOL retValue = 0;
+
+		int panres =  pantheios::pantheios_init();
+		pantheios_be_file_setFilePath(ERROR_LOG_FILE_NAME, 
+		PANTHEIOS_BE_FILE_F_TRUNCATE, 
+		PANTHEIOS_BE_FILE_F_TRUNCATE, 
+		PANTHEIOS_BEID_LOCAL);
+
         InitStorage(tmpDir());
         try
         {
@@ -513,7 +566,10 @@ extern "C"
         }
         catch (sd::db_error& err)
         {
-
+			wchar_t buffer[256]={0};
+			mbstowcs(buffer,err.what(),256);
+			pantheios::log_ERROR(buffer);
+			delete[] buffer;
         }
         return retValue;
     }
@@ -521,6 +577,13 @@ extern "C"
     MT4_EXPFUNC BOOL __stdcall		FinalizeOrderTable()
     {
         BOOL retValue = 0;
+		
+		int panres =  pantheios::pantheios_init();
+		pantheios_be_file_setFilePath(ERROR_LOG_FILE_NAME, 
+		PANTHEIOS_BE_FILE_F_TRUNCATE, 
+		PANTHEIOS_BE_FILE_F_TRUNCATE, 
+		PANTHEIOS_BEID_LOCAL);
+
         InitStorage(tmpDir());
         try
         {
@@ -547,7 +610,10 @@ extern "C"
         }
         catch (sd::db_error& err)
         {
-
+			wchar_t buffer[256]={0};
+			mbstowcs(buffer,err.what(),256);
+			pantheios::log_ERROR(buffer);
+			delete[] buffer;
         }
 
         return retValue;
