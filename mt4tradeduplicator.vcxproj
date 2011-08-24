@@ -64,14 +64,16 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>$(STLSOFT)/include;$(PANTHEIOS_ROOT)/include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalOptions>/DEF:"ServerValidate.def" %(AdditionalOptions)</AdditionalOptions>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalLibraryDirectories>$(PANTHEIOS_ROOT)/lib</AdditionalLibraryDirectories>
+      <ModuleDefinitionFile>MT4TradeDuplicator.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
