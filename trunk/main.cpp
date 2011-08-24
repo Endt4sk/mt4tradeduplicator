@@ -85,8 +85,8 @@ void __stdcall	        InitStorage(const char* path)
         databasePath = std::string(path);
         databasePath += "\\tradedup.db";
 		sd::sqlite database(databasePath);
-		database << "create table if not exists tempTrades (orderid int, ordersymbol text, ordercomment text, ordertype int, orderopenprice double, orderstoploss double, ordertakeprofit double, orderlots double, orderopentime text, accountnumber int)";
-        database << "create table if not exists activeTrades (orderid int, ordersymbol text, ordercomment text, ordertype int, orderopenprice double, orderstoploss double, ordertakeprofit double, orderlots double, orderopentime text, accountnumber int)";
+		database << "create table if not exists tempTrades (orderid int, ordersymbol text, ordercomment text, ordertype int, orderopenprice double, orderstoploss double, ordertakeprofit double, orderlots double, orderopentime int, accountnumber int)";
+        database << "create table if not exists activeTrades (orderid int, ordersymbol text, ordercomment text, ordertype int, orderopenprice double, orderstoploss double, ordertakeprofit double, orderlots double, orderopentime int, accountnumber int)";
 	}
     catch (sd::db_error& err)
     {
@@ -139,7 +139,7 @@ extern "C"
     MT4_EXPFUNC BOOL __stdcall	  StoreNewOrder(const int orderTicket, const char *orderSymbol, TradeOperation op,
             const double orderOpenPrice, const double orderStoploss,
             const double orderTakeProfit, const double orderLots,
-            const char *orderOpenTime,  const int acctNumber, const char *orderComment)
+            const int *orderOpenTime,  const int acctNumber, const char *orderComment)
 
     {
 
@@ -302,7 +302,8 @@ extern "C"
 
     MT4_EXPFUNC int	__stdcall	GetOrdersDetails(const int orderCount, const char* orderSymbol, const int acctNumber, int orderTicket[], int op[],
             double orderOpenPrice[], double orderStoploss[],
-            double orderTakeProfit[], double orderLots[], MqlStr * ordersymbol, MqlStr * ordercomments,  int returnedOrders[])
+            double orderTakeProfit[], double orderLots[], int orderDateTime[],
+			MqlStr * ordersymbol, MqlStr * ordercomments,  int returnedOrders[])
     {
 
         BOOL retValue = 0;
@@ -382,7 +383,8 @@ extern "C"
 
     MT4_EXPFUNC int	__stdcall	GetOrdersDetailsNoSymbol(const int orderCount, const int acctNumber, int orderTicket[], int op[],
             double orderOpenPrice[], double orderStoploss[],
-            double orderTakeProfit[], double orderLots[], MqlStr *  ordersymbol, MqlStr * ordercomments, int returnedOrders[])
+            double orderTakeProfit[], double orderLots[], int orderDateTime[],
+			MqlStr *  ordersymbol, MqlStr * ordercomments, int returnedOrders[])
     {
 
         BOOL retValue = 0;
