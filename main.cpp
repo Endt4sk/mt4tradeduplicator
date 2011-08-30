@@ -139,7 +139,7 @@ extern "C"
     MT4_EXPFUNC BOOL __stdcall	  StoreNewOrder(const int orderTicket, const char *orderSymbol, TradeOperation op,
             const double orderOpenPrice, const double orderStoploss,
             const double orderTakeProfit, const double orderLots,
-            const int *orderOpenTime,  const int acctNumber, const char *orderComment)
+            const int orderOpenTime,  const int acctNumber, const char *orderComment)
 
     {
 
