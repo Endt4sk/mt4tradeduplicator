@@ -26,7 +26,7 @@ bool ClearOrderTable();
 bool StoreNewOrder(int orderTicket, string orderSymbol, int op,
                    double orderOpenPrice, double orderStoploss,
                    double orderTakeProfit, double orderLots,
-                   string orderOpenTime, int acctNumber, string orderComment);
+                   int orderOpenTime, int acctNumber, string orderComment);
                    
 bool FinalizeOrderTable();
 #import
