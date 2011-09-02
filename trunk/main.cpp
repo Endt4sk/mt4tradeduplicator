@@ -83,7 +83,7 @@ void __stdcall	        InitStorage(const char* path)
         
 		std::string databasePath = "";
         databasePath = std::string(path);
-        databasePath += "\\tradedup.db";
+        databasePath += "\\TradeDupDB.db";
 		sd::sqlite database(databasePath);
 		database << "create table if not exists tempTrades (orderid int, ordersymbol text, ordercomment text, ordertype int, orderopenprice double, orderstoploss double, ordertakeprofit double, orderlots double, orderopentime int, accountnumber int)";
         database << "create table if not exists activeTrades (orderid int, ordersymbol text, ordercomment text, ordertype int, orderopenprice double, orderstoploss double, ordertakeprofit double, orderlots double, orderopentime int, accountnumber int)";
@@ -129,7 +129,7 @@ extern "C"
     {
         std::string databasePath = "";
         databasePath = std::string(tmpDir());
-        databasePath += "\\tradedup.db";
+        databasePath += "\\TradeDupDB.db";
 
         remove( databasePath.c_str() );
 
@@ -159,7 +159,7 @@ extern "C"
         {
             std::string databasePath = "";
             databasePath = tmpDir();
-            databasePath += "\\tradedup.db";
+            databasePath += "\\TradeDupDB.db";
 
 
 
@@ -211,7 +211,7 @@ extern "C"
             std::string databasePath = "";
 
             databasePath = tmpDir();
-            databasePath += "\\tradedup.db";
+            databasePath += "\\TradeDupDB.db";
             sd::sqlite database(databasePath);   // open the db with the table already created
             sd::sql selquery(database);
             std::string squery = "select count(*) from activeTrades where ordersymbol = '";
@@ -265,7 +265,7 @@ extern "C"
             std::string databasePath = "";
 
             databasePath = tmpDir();
-            databasePath += "\\tradedup.db";
+            databasePath += "\\TradeDupDB.db";
             sd::sqlite database(databasePath);   // open the db with the table already created
             sd::sql selquery(database);
             std::string squery = "select count(*) from activeTrades";
@@ -324,7 +324,7 @@ extern "C"
         {
             std::string databasePath = "";
             databasePath = tmpDir();
-            databasePath += "\\tradedup.db";
+            databasePath += "\\TradeDupDB.db";
 
 
             sd::sqlite database(databasePath);   // open the db with the table already created
@@ -405,7 +405,7 @@ extern "C"
         {
             std::string databasePath = "";
             databasePath = tmpDir();
-            databasePath += "\\tradedup.db";
+            databasePath += "\\TradeDupDB.db";
 
 
             sd::sqlite database(databasePath);   // open the db with the table already created
@@ -491,7 +491,7 @@ extern "C"
         {
             std::string databasePath = "";
             databasePath = tmpDir();
-            databasePath += "\\tradedup.db";
+            databasePath += "\\TradeDupDB.db";
 
 
             sd::sqlite database(databasePath);   // open the db with the table already created
@@ -556,7 +556,7 @@ extern "C"
             std::string databasePath = "";
 
             databasePath = tmpDir();
-            databasePath += "\\tradedup.db";
+            databasePath += "\\TradeDupDB.db";
             sd::sqlite database(databasePath);   // open the db with the table already created
 
             sd::sql selquery(database);
@@ -593,7 +593,7 @@ extern "C"
             std::string databasePath = "";
             //path=getcwd(path,size);
             databasePath = tmpDir();
-            databasePath += "\\tradedup.db";
+            databasePath += "\\TradeDupDB.db";
             sd::sqlite database(databasePath);   // open the db with the table already created
             sd::sql insert_query(database);   // build an sql query
             sd::sql selquery(database);
