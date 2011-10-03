@@ -331,7 +331,7 @@ extern "C"
             sd::sql selquery(database);
 
 
-            std::string squery = "select orderid , ordertype, orderopenprice, orderstoploss, ordertakeprofit, orderlots, ordercomment, ordersymbol  from activeTrades where ordersymbol = '";
+            std::string squery = "select orderid , ordertype, orderopenprice, orderstoploss, ordertakeprofit, orderlots, ordercomment, ordersymbol, orderopentime  from activeTrades where ordersymbol = '";
             squery += orderSymbol;
             squery += "'";
 
@@ -349,7 +349,7 @@ extern "C"
             {
                 std::string comString;
 				std::string symbolString;
-                selquery >>  orderTicket[rwCnt] >> op[rwCnt] >> orderOpenPrice[rwCnt] >> orderStoploss[rwCnt] >> orderTakeProfit[rwCnt] >> orderLots[rwCnt] >> comString >> symbolString;
+                selquery >>  orderTicket[rwCnt] >> op[rwCnt] >> orderOpenPrice[rwCnt] >> orderStoploss[rwCnt] >> orderTakeProfit[rwCnt] >> orderLots[rwCnt] >> comString >> symbolString >> orderDateTime[rwCnt];
                 std::vector<char> writableComString(comString.size() + 1);
 				std::copy(comString.begin(), comString.end(), writableComString.begin());
 				strcpy(ordercomments[rwCnt].string, &writableComString[0]);
@@ -412,7 +412,7 @@ extern "C"
             sd::sql selquery(database);
 
 
-            std::string squery = "select orderid , ordertype, orderopenprice, orderstoploss, ordertakeprofit, orderlots, ordercomment, ordersymbol from activeTrades ";
+            std::string squery = "select orderid , ordertype, orderopenprice, orderstoploss, ordertakeprofit, orderlots, ordercomment, ordersymbol, orderopentime from activeTrades ";
 
             if (acctNumber != 0)
             {
@@ -428,7 +428,7 @@ extern "C"
             {
                 std::string comString;
 				std::string symbolString;
-                selquery >>  orderTicket[rwCnt] >> op[rwCnt] >> orderOpenPrice[rwCnt] >> orderStoploss[rwCnt] >> orderTakeProfit[rwCnt] >> orderLots[rwCnt]>> comString >> symbolString;
+                selquery >>  orderTicket[rwCnt] >> op[rwCnt] >> orderOpenPrice[rwCnt] >> orderStoploss[rwCnt] >> orderTakeProfit[rwCnt] >> orderLots[rwCnt]>> comString >> symbolString >> orderDateTime[rwCnt];
                 //int szString1 = lstrlenA(comString.c_str());
                 //char * string1 = (char*)malloc(szString1 + 1);
                 //lstrcpyA(string1, comString.c_str());
