@@ -91,7 +91,7 @@ void PopulateOrders()
             StoreNewOrder(OrderTicket(), StringSubstr(OrderSymbol(), 0, 6), OrderType(),
                    OrderOpenPrice(), OrderStopLoss(),
                    OrderTakeProfit(), OrderLots(),
-                   TimeToStr(OrderOpenTime()), AccountNumber(), OrderComment());
+                   OrderOpenTime(), AccountNumber(), OrderComment());
         }
     }
     
