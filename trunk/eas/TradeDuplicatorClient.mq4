@@ -78,6 +78,7 @@ double g_LocalOrdeTakeProfit[];             //     OrderTakeProfit()
 
 double dXPoint = 1;
 int Slippage=10;
+int timeDifference = 0;
 
 //+----------------------------------------------------------------------------+
 //|  Custom indicator initialization function                                  |
@@ -105,6 +106,8 @@ void init()
         dXPoint=10;
         Slippage = Slippage * dXPoint;
     }
+    timeDifference = MathAbs(TimeLocal() - TimeCurrent());
+    
     SendTickToChart();
     
 
@@ -236,11 +239,12 @@ void processTrades()
 
 
     k=ArraySize(StoredOrderTicket);
-   
+    
     for (i=0; i<k; i++)
     {
 
-        p=MarketInfo(StoredOrderSymbol[i], MODE_POINT);
+        string localSymbol = findCurrencySymbol(StoredOrderSymbol[i]);
+        p=MarketInfo(localSymbol, MODE_POINT);
         // Search for OrderTicket in old array
         in=ArraySearchInt(g_StoredOrderTicket, StoredOrderTicket[i]);
 
@@ -251,27 +255,27 @@ void processTrades()
             double pnow = 0.0;
             newlots = StoredOrderLots[i] * LotMultiplier;
  
-            if (newlots < MarketInfo(StoredOrderSymbol[i],MODE_MINLOT))
+            if (newlots < MarketInfo(localSymbol,MODE_MINLOT))
             {
-                newlots = MarketInfo(StoredOrderSymbol[i],MODE_MINLOT);
+                newlots = MarketInfo(localSymbol,MODE_MINLOT);
             }
-            if (newlots > MarketInfo(StoredOrderSymbol[i],MODE_MAXLOT))
+            if (newlots > MarketInfo(localSymbol,MODE_MAXLOT))
             {
-                newlots = MarketInfo(StoredOrderSymbol[i],MODE_MAXLOT);
+                newlots = MarketInfo(localSymbol,MODE_MAXLOT);
             }
  
  
             if (StoredOrderType[i] == OP_BUY)
             {
-                pnow = NormalizeDouble(MarketInfo(StoredOrderSymbol[i], MODE_ASK), MarketInfo(StoredOrderSymbol[i], MODE_DIGITS)); // we are buying at Ask
+                pnow = NormalizeDouble(MarketInfo(localSymbol, MODE_ASK), MarketInfo(localSymbol, MODE_DIGITS)); // we are buying at Ask
             }
             else if (StoredOrderType[i] == OP_SELL)
             {
-                pnow = NormalizeDouble(MarketInfo(StoredOrderSymbol[i], MODE_BID), MarketInfo(StoredOrderSymbol[i], MODE_DIGITS)); // we are buying at Ask
+                pnow = NormalizeDouble(MarketInfo(localSymbol, MODE_BID), MarketInfo(localSymbol, MODE_DIGITS)); // we are buying at Ask
             }
             else
             {
-                pnow = NormalizeDouble(StoredOrderOpenPrice[i], MarketInfo(StoredOrderSymbol[i], MODE_DIGITS));
+                pnow = NormalizeDouble(StoredOrderOpenPrice[i], MarketInfo(localSymbol, MODE_DIGITS));
             }
  
  
@@ -285,12 +289,12 @@ void processTrades()
  
 
                 if (newCmd == OP_BUY || newCmd == OP_SELL)
-                    BetterOrderSend2Step(StoredOrderSymbol[i], newCmd, newlots, pnow,
+                    BetterOrderSend2Step(localSymbol, newCmd, newlots, pnow,
                                    Slippage, StoredOrderStopLoss[i], StoredOrdeTakeProfit[i],
                                    StoredOrderComment[i], StoredOrderTicket[i], 0, Blue);
                 else
                 {
-                    BetterOrderSend2Step(StoredOrderSymbol[i], newCmd, newlots, newPrice,
+                    BetterOrderSend2Step(localSymbol, newCmd, newlots, newPrice,
                                    Slippage, StoredOrderStopLoss[i], StoredOrdeTakeProfit[i],
                                    StoredOrderComment[i], StoredOrderTicket[i], 0, Blue);
                 }
@@ -308,7 +312,7 @@ void processTrades()
  
                 //Send modified order
                 int modifyOrder = GetOrderByMagic(g_StoredOrderTicket[in]);
-
+                
                 if (modifyOrder > 0)
                 {
                     if (OrderSelect(modifyOrder, SELECT_BY_TICKET, MODE_TRADES))
@@ -715,17 +719,18 @@ int GetOrderByMagic(int magic)
  
 
  
+///ORDER PROCESSING CODE
 int BetterOrderSend2Step(string symbol, int cmd, double volume, double price,
                          int slippage, double stoploss, double takeprofit,
                          string comment, int magic, datetime expiration = 0,
                          color arrow_color = CLR_NONE)
 {
  
- 
+    double adjustedPrice = price;
     // ------------------------------------------------
     // Check basic conditions see if trade is possible.
     // ------------------------------------------------
-    if (!IsConnected())
+    if (!Connected())
     {
         return(-1);
     }
@@ -788,8 +793,12 @@ int BetterOrderSend2Step(string symbol, int cmd, double volume, double price,
         {
             if (IsTradeAllowed())
             {
-                ticket = OrderSend(symbol, cmd, volume, price, slippage, 0.0,
-                                   0.0, comment, magic, expiration, arrow_color);
+                    if (stoploss != 0)
+                     stoploss = EnsureValidSL(symbol, price, stoploss);
+                    if (takeprofit != 0)
+                     EnsureValidTP(symbol, price, takeprofit);
+                ticket = OrderSend(symbol, cmd, volume, price, slippage, stoploss,
+                                   takeprofit, comment, magic, expiration, arrow_color);
                 err = GetLastError();
             }
             else
@@ -819,37 +828,84 @@ int BetterOrderSend2Step(string symbol, int cmd, double volume, double price,
                 continue;	// we can apparently retry immediately according to MT docs.
  
             case ERR_INVALID_STOPS:
+                cnt++;
+                RefreshRates();
                 double servers_min_stop = MarketInfo(symbol, MODE_STOPLEVEL) * MarketInfo(symbol, MODE_POINT);
                 if (cmd == OP_BUYSTOP || cmd == OP_BUYLIMIT)
                 {
-                    if (MathAbs(Ask - price) <= servers_min_stop)
+                    if (MathAbs(MarketInfo(symbol,MODE_ASK) - price) <= servers_min_stop)
                     {
- 
-                        if (price < Ask)
-                            price = Ask - servers_min_stop;
-                        else if (price > Ask)
-                            price = Ask + servers_min_stop;
+                       
+                        if (price < MarketInfo(symbol,MODE_ASK))
+                        {
+                            if (cmd == OP_BUYSTOP)
+                            {
+                              cmd = OP_BUY;
+                              price = MarketInfo(symbol,MODE_ASK);
+                              exit_loop = true;
+                            }
+                            else
+                              price = MarketInfo(symbol,MODE_ASK) - servers_min_stop;
+                        }
+                        else if (price > MarketInfo(symbol,MODE_ASK))
+                        {
+                            if (cmd == OP_BUYLIMIT)
+                            {
+                              cmd = OP_BUY;
+                              price = MarketInfo(symbol,MODE_ASK);
+                              exit_loop = true;
+                            }
+                            else
+                              price = MarketInfo(symbol,MODE_ASK) + servers_min_stop;
+                        }
                         else
-                            Print("Non-retryable error - Price is Set same as Ask, cannot continue.");
- 
+                        {
+                          cmd = OP_BUY;
+                          price = MarketInfo(symbol,MODE_ASK);
+                          exit_loop = true;
+                        }
+
                     }
+                    
  
                 }
                 else if (cmd == OP_SELLSTOP || cmd == OP_SELLLIMIT)
                 {
                     // If we are too close to put in a limit/stop order so go to market.
-                    if (MathAbs(Bid - price) <= servers_min_stop)
+                    if (MathAbs(MarketInfo(symbol,MODE_BID) - price) <= servers_min_stop)
                     {
- 
-                        if (price < Bid)
-                            price = Bid - servers_min_stop;
-                        else if (price > Bid)
-                            price = Bid + servers_min_stop;
+                        if (price < MarketInfo(symbol,MODE_BID))
+                        {
+                            if (cmd == OP_SELLLIMIT)
+                            {
+                              cmd = OP_SELL;
+                              price = MarketInfo(symbol,MODE_BID);
+                              exit_loop = true;
+                            }
+                            else
+                              price = MarketInfo(symbol,MODE_BID) - servers_min_stop;
+                        }
+                        else if (price > MarketInfo(symbol,MODE_BID))
+                        {
+                            if (cmd == OP_SELLSTOP)
+                            {
+                              cmd = OP_SELL;
+                              price = MarketInfo(symbol,MODE_BID);
+                              exit_loop = true;
+                            }
+                            
+                            price = MarketInfo(symbol,MODE_BID) + servers_min_stop;
+                        }
                         else
-                            Print("Non-retryable error - Price is Set same as Bid, cannot continue.");
+                        {
+                           cmd = OP_SELL;
+                           price = MarketInfo(symbol,MODE_BID);
+                           exit_loop = true;
+                        }
  
                     }
                 }
+                price = NormalizeDouble(price, digits);
                 break;
  
             default:
@@ -878,7 +934,6 @@ int BetterOrderSend2Step(string symbol, int cmd, double volume, double price,
             {
                 Print("Retryable error (" + cnt + "/" + 10 +
                       "): " + ErrorDescription(err));
-                SleepRandomTime(30, 45);
                 RefreshRates();
             }
         }
@@ -886,7 +941,7 @@ int BetterOrderSend2Step(string symbol, int cmd, double volume, double price,
         // We have now exited from loop.
         if (err == ERR_NO_ERROR)
         {
-            Print("Apparently successful " + OrderType2String(cmd) + " order placed, details follow.");
+            Print("Successful " + OrderType2String(cmd) + " order placed, details follow.");
             OrderSelect(ticket, SELECT_BY_TICKET, MODE_TRADES);
             OrderPrint();
         }
@@ -986,7 +1041,7 @@ int BetterOrderSend2Step(string symbol, int cmd, double volume, double price,
         {
             Print("Ticket #" + ticket + ": Apparently successful " + OrderType2String(cmd) + " order placed, details follow.");
             OrderSelect(ticket, SELECT_BY_TICKET, MODE_TRADES);
-            OrderPrint();
+            OrderPrint(); 
         }
         else
         {
@@ -996,18 +1051,25 @@ int BetterOrderSend2Step(string symbol, int cmd, double volume, double price,
             Print("last error: " + ErrorDescription(err));
             return(-1);
         }
-    }
- 
- 
+    
+    
     if (ticket > 0 && (stoploss != 0 || takeprofit != 0))
     {
         OrderSelect(ticket, SELECT_BY_TICKET);
+
         bool b_modify = BetterOrderModifySymbol(symbol, cmd, ticket, OrderOpenPrice(),
                                                 stoploss, takeprofit, 0, arrow_color);
     }
  
+        
+
+    }
+ 
+ 
+
     return (ticket);
 }
+
  
  
  
@@ -1212,27 +1274,36 @@ bool BetterOrderModifySymbol(string symbol, int cmd, int ticket, double price,
 
 }
  
-void EnsureValidSL(string symbol, double price, double& sl)
+double EnsureValidSL(string symbol, double price, double sl)
 {
- 
-    if (sl == 0)
+    
+    double slret = sl;
+    
+    if (slret == 0)
         return;
  
-    double servers_min_stop = (MarketInfo(symbol, MODE_STOPLEVEL)*dXPoint) * MarketInfo(symbol, MODE_POINT);
+    double servers_min_stop = MarketInfo(symbol, MODE_STOPLEVEL) * MarketInfo(symbol, MODE_POINT);
  
-    if (MathAbs(price - sl) <= servers_min_stop)
-    {
- 
-        if (price > sl)
-            sl = price - servers_min_stop;
- 
-        else if (price < sl)
-            sl = price + servers_min_stop;
- 
- 
- 
-        sl = NormalizeDouble(sl, MarketInfo(symbol, MODE_DIGITS));
-    }
+   if (price > slret) //if buy
+   {
+      if (MathAbs(price - slret) <= servers_min_stop - (MarketInfo(symbol,MODE_ASK)-MarketInfo(symbol,MODE_BID)))
+      {
+         slret = price - servers_min_stop - (MarketInfo(symbol,MODE_ASK)-MarketInfo(symbol,MODE_BID));
+         slret = NormalizeDouble(slret, MarketInfo(symbol, MODE_DIGITS));
+      }
+   }
+   
+   if (price < slret) //if sell
+   {
+      if (MathAbs(price - slret) <= servers_min_stop - (MarketInfo(symbol,MODE_ASK)-MarketInfo(symbol,MODE_BID)))
+      {
+         slret = price + servers_min_stop + (MarketInfo(symbol,MODE_ASK)-MarketInfo(symbol,MODE_BID));
+         slret = NormalizeDouble(slret, MarketInfo(symbol, MODE_DIGITS));
+      }
+   }
+   
+   return (slret);
+
 }
  
  
@@ -1439,6 +1510,45 @@ int ArraySearchTimeDoubleString(datetime ta[], double da[], string sa[], datetim
     if (ta[i] == t && da[i] == d && sa[i] == s) return(i);
 
   return(-1);
+}
+
+string findCurrencySymbol(string sysSymbol)
+{
+    string retString = "";
+    int symbolHandle = FileOpenHistory("symbols.raw",FILE_BIN | FILE_READ);
+    if (symbolHandle < 1)
+    {
+        Print("Error: the file symbols.raw is not accessible");
+        retString = "";
+    }
+ 
+    //int total = (FileSize(symbolHandle)-4)/128; (symbols.sel)
+    int total = FileSize(symbolHandle) / 1936;
+ 
+    //FileSeek(symbolHandle,4,SEEK_SET);
+    for (int i=0; i<total; i++)
+    {
+        string activeSymbol = StringTrimRight(FileReadString(symbolHandle,12));
+        if (StringSubstr(activeSymbol, 0, 6) == sysSymbol)
+            retString = activeSymbol;
+        //FileSeek(symbolHandle,118,SEEK_CUR);
+        FileSeek(symbolHandle, 1924, SEEK_CUR);
+    }
+    FileClose(symbolHandle);
+ 
+    return(retString);
+ 
+ 
+}
+
+bool Connected(){
+  int distance = 15;
+   
+  if ((!IsConnected()) && MathAbs(TimeLocal() - TimeCurrent()) - timeDifference > distance){
+  return(false);
+  }
+   
+  return(true); 
 }
 
 void SendTickToChart()
